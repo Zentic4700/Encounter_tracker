@@ -527,17 +527,10 @@
             var chips = (r.conds || []).map(function (c) { return '<span class="cond ro">' + esc(c) + '</span>'; })
                 .concat((r.lconds || []).map(function (x) { return '<span class="cond lk ro">' + esc(x.l) + ' (' + Number(x.n) + ')</span>'; }));
             var conds = chips.length ? '<div class="rowconds">' + chips.join('') + '</div>' : '';
-            var right;
-            if (r.kind === 'pc') {
-                var col = hpColor(r.hp, r.max);
-                var p = r.max > 0 ? Math.max(0, Math.min(100, Math.round(r.hp / r.max * 100))) : 0;
-                right = '<div class="rc" style="color:' + col + '">' + r.hp + '<span class="mx"> / ' + r.max + '</span>' + ((Number(r.temp) || 0) > 0 ? '<span class="tmp">+' + Number(r.temp) + '</span>' : '') + '</div>' +
-                    '<div class="mini"><i style="width:' + p + '%;background:' + col + '"></i></div>';
-            } else {
-                var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280' };
-                right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
-                    '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
-            }
+            // Colour only for everyone (your own numbers are in your card above)
+            var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280' };
+            var right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
+                '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
             return '<div class="' + cls + '"><div class="ini">' + esc(r.init) + '</div>' +
                 '<div><div class="nm">' + esc(r.name) + (r.me ? '<em>you</em>' : '') + '</div>' + conds + '</div>' +
                 '<div>' + right + '</div></div>';
