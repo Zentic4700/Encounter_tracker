@@ -124,7 +124,15 @@
         background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%);
         border: 1px solid #5a4a30; border-radius: 8px;
     }
-    .row.active { border: 2px solid #d4af37; box-shadow: 0 0 0 2px rgba(212,175,55,.2), 0 0 20px rgba(212,175,55,.45); }
+    .row.active { border: 2px solid #d4af37; box-shadow: 0 0 0 2px rgba(212,175,55,.2), 0 0 20px rgba(212,175,55,.45); padding-left: 20px; }
+    /* Thick gold bar down the left edge, same as the tracker and Turn Display */
+    .row.active::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
+        background: linear-gradient(180deg, #f4d878, #d4af37 40%, #a3801f);
+        border-radius: 6px 0 0 6px; box-shadow: 0 0 12px rgba(212,175,55,.7);
+    }
+    .row.timer.active { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.2), 0 0 20px rgba(59,130,246,.45); }
+    .row.timer.active::before { background: linear-gradient(180deg, #93c5fd, #3b82f6 40%, #1d4ed8); box-shadow: 0 0 12px rgba(59,130,246,.7); }
     .row.me { border-color: #b89961; }
     .row.dead { opacity: .55; background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%); }
     .row.dead .nm { text-decoration: line-through; }
@@ -382,7 +390,7 @@
         if (m.t === 'denied') {
             denied = true; cleanup();
             setConn('bad', 'Link not valid');
-            showMsg('This link no longer works', 'Ask your DM for a fresh link.');
+            showMsg('This link no longer works', 'This link does not match a player in your DM’s tracker. Ask your DM to press Copy link again and open that newest link.');
             return;
         }
         if (m.t === 'state') {
