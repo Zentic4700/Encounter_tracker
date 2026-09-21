@@ -44,6 +44,17 @@
         animation: glow 1.8s ease-in-out infinite;
     }
     #turn.on { display: block; }
+    /* "You're up next": calmer than the turn banner, but hard to miss */
+    #upnext {
+        display: none; text-align: center; margin-bottom: 12px; padding: 10px;
+        font-family: 'Cinzel', Georgia, serif; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+        font-size: 17px; color: #dbeafe;
+        background: linear-gradient(180deg, #1e3a8a, #172554);
+        border: 2px solid #60a5fa; border-radius: 10px;
+        animation: nudge 1.4s ease-in-out infinite;
+    }
+    #upnext.on { display: block; }
+    @keyframes nudge { 0%,100% { box-shadow: 0 0 8px rgba(96,165,250,.35); } 50% { box-shadow: 0 0 26px rgba(96,165,250,.85); } }
     @keyframes glow { 0%,100% { box-shadow: 0 0 14px rgba(212,175,55,.35); } 50% { box-shadow: 0 0 34px rgba(212,175,55,.75); } }
 
     /* ---- layout ---- */
@@ -161,7 +172,33 @@
     .le .ba { color: #9ca3af; padding-left: 8px; }
     .le-none { color: #6b7280; font-style: italic; }
 
-    .k-healthy { color: #4ade80; } .k-hurt { color: #c8d44a; } .k-bloodied { color: #f59e0b; } .k-critical { color: #ef4444; } .k-down { color: #9ca3af; }
+    /* ---- effects (round timers) ---- */
+    .fxhead { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #3e2513; }
+    .fxhead h2 { margin: 0; }
+    #fx-toggle { width: 26px; height: 26px; padding: 0; line-height: 1; text-align: center; background: #1a1715; border-color: #b89961; color: #d4af37; }
+    #fx-form { margin-top: 10px; }
+    .fxrow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .fxrow input[type=text], .fxrow input[type=number] {
+        min-width: 0; font-size: 16px; padding: 9px; background: rgba(0,0,0,.4); border: 1px solid #b89961; color: #e4d5b7; border-radius: 6px; outline: none;
+    }
+    #fx-name { flex: 1; } #fx-rounds { width: 76px; text-align: center; }
+    .fxrow span { font-size: 13px; color: #9a8b70; }
+    .fxgroup { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #b89961; margin: 6px 0 4px; }
+    .tg { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px 6px 0; padding: 5px 9px; font-size: 14px;
+          background: rgba(0,0,0,.35); border: 1px solid #5a4a30; border-radius: 6px; cursor: pointer; }
+    .tg.on { border-color: #60a5fa; background: #0f172a; color: #93c5fd; }
+    .tg input { accent-color: #60a5fa; }
+    #fx-add { background: #1e3a8a; border-color: #1e40af; margin-top: 4px; }
+    #fx-add:not(:disabled):hover { background: #1d4ed8; }
+    .fxact { margin-top: 4px; text-align: right; }
+    .fx-del { background: none; border: none; color: #6b7280; padding: 0 4px; font-size: 16px; line-height: 1; }
+    .fx-del:hover { color: #f87171; }
+    .cf { display: inline-flex; align-items: center; background: #5a1c1c; border: 1px solid #3e1515; border-radius: 6px; padding: 0 2px; }
+    .cf button { background: none; border: none; padding: 2px 7px; font-size: 16px; line-height: 1.2; font-weight: 700; }
+    .cf .yes { color: #4ade80; } .cf .no { color: #fff; }
+    .row.timer .nm em { color: #6b8fc4; }
+
+    .k-healthy { color: #22c55e; } .k-hurt { color: #eab308; } .k-bloodied, .k-critical { color: #ef4444; } .k-down { color: #9ca3af; }
 
     #msg { text-align: center; color: #9a8b70; padding: 28px 12px; line-height: 1.6; }
     #msg b { display: block; font-family: 'Cinzel', Georgia, serif; color: #d4af37; font-size: 20px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -181,6 +218,7 @@
 
     <div id="main" class="hidden">
         <div id="turn">Your turn</div>
+        <div id="upnext">You're up next</div>
         <div class="grid">
             <div>
                 <div class="card" id="mycard">
@@ -212,6 +250,20 @@
                         <h2>Conditions</h2>
                         <div class="conds" id="my-conds"></div>
                         <select id="cond-add" aria-label="Add condition"></select>
+
+                        <div class="fxhead">
+                            <button id="fx-toggle" aria-expanded="false" aria-controls="fx-form" title="Add a round timer (e.g. Bless, Bane)">+</button>
+                            <h2>Add effect</h2>
+                        </div>
+                        <div id="fx-form" class="hidden">
+                            <div class="fxrow">
+                                <input id="fx-name" type="text" maxlength="30" placeholder="e.g. Bless" aria-label="Effect name">
+                                <input id="fx-rounds" type="number" inputmode="numeric" min="1" max="999" value="10" aria-label="Rounds">
+                                <span>rounds</span>
+                            </div>
+                            <div id="fx-targets"></div>
+                            <button id="fx-add" class="b-heal">Add effect</button>
+                        </div>
 
                         <div class="loghead">
                             <button id="log-toggle" aria-expanded="false" aria-controls="log-body" title="Show / hide HP &amp; Temp HP log">+</button>
@@ -251,7 +303,8 @@
     var joined = false, denied = false;
     var lastMsgAt = 0, retryT = null, attempt = 0, openT = null;
     var last = null;            // last state from the DM
-    var prevHp = null, wasMyTurn = false;
+    var prevHp = null, wasMyTurn = false, wasUpNext = false;
+    var delPending = null;      // timer id waiting for its tick / cross
 
     // ---------- status ----------
     function setConn(kind, text) {
@@ -262,7 +315,7 @@
         $('btn-dmg').disabled = !live;
         $('btn-heal').disabled = !live;
         $('cond-add').disabled = !live;
-        document.querySelectorAll('.edit input').forEach(function (i) { i.disabled = !live; });
+        document.querySelectorAll('.edit input, #fx-form input, #fx-add').forEach(function (i) { i.disabled = !live; });
         document.querySelectorAll('.cond button').forEach(function (b) { b.disabled = !live; });
     }
 
@@ -348,13 +401,13 @@
     function send(obj) { if (conn && conn.open && joined) { try { conn.send(obj); } catch (e) {} } }
 
     // ---------- rendering ----------
+    // Same colour rule everywhere: green at full HP, yellow while over half, red at half or less, grey when down.
     function hpColor(hp, max) {
         if (hp <= 0) return '#6b7280';
         var r = max > 0 ? hp / max : 1;
-        if (r > 0.75) return '#22c55e';
-        if (r > 0.5) return '#a3b83a';
-        if (r > 0.25) return '#e0822b';
-        return '#dc2626';
+        if (r >= 1) return '#22c55e';
+        if (r > 0.5) return '#eab308';
+        return '#ef4444';
     }
 
     // ---------- HP / Temp log ----------
@@ -401,7 +454,11 @@
         $('mycard').classList.toggle('mine-active', myActive);
         if (myActive && !wasMyTurn) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
         wasMyTurn = myActive;
-        document.title = myActive ? '▶ Your turn! - Encounter Master' : 'Encounter Master - Player';
+        var upNext = !!(mine && !myActive && s.nextId === mine.id);
+        $('upnext').classList.toggle('on', upNext);
+        if (upNext && !wasUpNext) { try { if (navigator.vibrate) navigator.vibrate(150); } catch (e) {} }
+        wasUpNext = upNext;
+        document.title = myActive ? '▶ Your turn! - Encounter Master' : upNext ? '⏭ Up next - Encounter Master' : 'Encounter Master - Player';
 
         $('my-body').classList.toggle('hidden', !mine);
         $('my-none').classList.toggle('hidden', !!mine);
@@ -449,15 +506,23 @@
                 .map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
         }
 
+        renderTargets(s.order);
+
         $('order').innerHTML = s.order.map(function (r) {
             var cls = 'row';
             if (r.active) cls += ' active';
             if (r.me) cls += ' me';
             if (r.dead) cls += ' dead';
             if (r.kind === 'timer') {
+                var act = '';
+                if (r.mine) {
+                    act = delPending === r.id
+                        ? '<div class="fxact"><span class="cf"><button class="yes fx-yes" data-id="' + r.id + '" title="Confirm" aria-label="Confirm delete">&#10003;</button><button class="no fx-no" data-id="' + r.id + '" title="Cancel" aria-label="Cancel">&#10005;</button></span></div>'
+                        : '<div class="fxact"><button class="fx-del" data-id="' + r.id + '" title="Delete this effect" aria-label="Delete effect">&#128465;&#xFE0E;</button></div>';
+                }
                 return '<div class="' + cls + ' timer"><div class="ini">' + esc(r.init) + '</div>' +
-                    '<div><div class="nm">' + esc(r.name) + '</div></div>' +
-                    '<div class="rc" style="color:#93c5fd">' + r.rounds + (r.rounds === 1 ? ' round' : ' rounds') + '</div></div>';
+                    '<div><div class="nm">' + esc(r.name) + (r.by ? '<em>' + (r.mine ? 'yours' : 'by ' + esc(r.by)) + '</em>' : '') + '</div></div>' +
+                    '<div><div class="rc" style="color:#93c5fd">' + r.rounds + (r.rounds === 1 ? ' round' : ' rounds') + '</div>' + act + '</div></div>';
             }
             var chips = (r.conds || []).map(function (c) { return '<span class="cond ro">' + esc(c) + '</span>'; })
                 .concat((r.lconds || []).map(function (x) { return '<span class="cond lk ro">' + esc(x.l) + ' (' + Number(x.n) + ')</span>'; }));
@@ -469,7 +534,7 @@
                 right = '<div class="rc" style="color:' + col + '">' + r.hp + '<span class="mx"> / ' + r.max + '</span>' + ((Number(r.temp) || 0) > 0 ? '<span class="tmp">+' + Number(r.temp) + '</span>' : '') + '</div>' +
                     '<div class="mini"><i style="width:' + p + '%;background:' + col + '"></i></div>';
             } else {
-                var colors = { healthy: '#22c55e', hurt: '#a3b83a', bloodied: '#e0822b', critical: '#dc2626', down: '#6b7280' };
+                var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280' };
                 right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
                     '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
             }
@@ -478,6 +543,67 @@
                 '<div>' + right + '</div></div>';
         }).join('');
     }
+
+    // ---------- effects (round timers) ----------
+    var picked = {};            // target id -> true; survives the constant re-rendering
+    var targetSig = null;
+    function renderTargets(order) {
+        var list = order.filter(function (r) { return r.kind !== 'timer'; });
+        var sig = list.map(function (r) { return r.id + ':' + r.kind + ':' + r.name; }).join('|');
+        if (sig === targetSig) return;
+        targetSig = sig;
+        var have = {};
+        list.forEach(function (r) { have[r.id] = 1; });
+        Object.keys(picked).forEach(function (k) { if (!have[k]) delete picked[k]; });
+        function group(title, rows) {
+            if (!rows.length) return '';
+            return '<div class="fxgroup">' + title + '</div>' + rows.map(function (r) {
+                return '<label class="tg' + (picked[r.id] ? ' on' : '') + '"><input type="checkbox" value="' + r.id + '"' + (picked[r.id] ? ' checked' : '') + '> ' + esc(r.name) + '</label>';
+            }).join('');
+        }
+        $('fx-targets').innerHTML = group('Affects — party', list.filter(function (r) { return r.kind === 'pc'; })) +
+                                    group('Affects — enemies', list.filter(function (r) { return r.kind !== 'pc'; }));
+    }
+    $('fx-targets').addEventListener('change', function (e) {
+        var i = e.target;
+        if (i.tagName !== 'INPUT') return;
+        if (i.checked) picked[i.value] = true; else delete picked[i.value];
+        i.closest('.tg').classList.toggle('on', i.checked);
+    });
+    $('fx-toggle').addEventListener('click', function () {
+        var open = $('fx-form').classList.toggle('hidden') === false;
+        this.textContent = open ? '\u2212' : '+';
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    $('fx-add').addEventListener('click', function () {
+        var name = $('fx-name').value.trim();
+        var rounds = parseInt($('fx-rounds').value, 10);
+        var btn = this;
+        if (!name || !isFinite(rounds) || rounds < 1 || rounds > 999) {
+            btn.textContent = !name ? 'Give it a name' : 'Rounds 1-999';
+            setTimeout(function () { btn.textContent = 'Add effect'; }, 1500);
+            return;
+        }
+        send({ t: 'addTimer', name: name, rounds: rounds, targets: Object.keys(picked).map(Number) });
+        $('fx-name').value = '';
+        picked = {}; targetSig = null; if (last) renderTargets(last.order);
+        btn.textContent = 'Added!';
+        setTimeout(function () { btn.textContent = 'Add effect'; }, 1500);
+    });
+    $('order').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-id]');
+        if (!b) return;
+        var id = Number(b.getAttribute('data-id'));
+        if (b.classList.contains('fx-del')) {
+            delPending = id;
+            setTimeout(function () { if (delPending === id) { delPending = null; if (last) render(); } }, 3000);
+            render();
+        } else if (b.classList.contains('fx-no')) {
+            delPending = null; render();
+        } else if (b.classList.contains('fx-yes')) {
+            delPending = null; send({ t: 'delTimer', id: id }); render();
+        }
+    });
 
     // ---------- controls ----------
     function amount() {
