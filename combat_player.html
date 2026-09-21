@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#12100e">
+<title>Encounter Master - Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Lato', system-ui, sans-serif;
+        background-color: #12100e;
+        background-image: radial-gradient(circle at center, #1a1715 0%, #0a0908 100%);
+        background-attachment: fixed;
+        color: #e4d5b7;
+        min-height: 100vh;
+        padding: 12px 12px 40px;
+        -webkit-text-size-adjust: 100%;
+    }
+    .cinzel { font-family: 'Cinzel', Georgia, serif; }
+    .wrap { max-width: 1000px; margin: 0 auto; }
+
+    /* ---- top bar ---- */
+    .top {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 14px; margin-bottom: 12px;
+        background: #241e19; border: 1px solid #3e2513; border-radius: 10px;
+    }
+    #round { font-family: 'Cinzel', Georgia, serif; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #d4af37; font-size: 18px; }
+    #conn { font-size: 12px; color: #9a8b70; display: flex; align-items: center; gap: 6px; }
+    #conn i { width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; display: inline-block; }
+    #conn.live i { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    #conn.bad i { background: #ef4444; }
+
+    /* ---- turn banner ---- */
+    #turn {
+        display: none; text-align: center; margin-bottom: 12px; padding: 12px;
+        font-family: 'Cinzel', Georgia, serif; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+        font-size: 20px; color: #1a1305;
+        background: linear-gradient(180deg, #f4d878, #d4af37 55%, #a3801f);
+        border-radius: 10px; box-shadow: 0 0 26px rgba(212,175,55,.55);
+        animation: glow 1.8s ease-in-out infinite;
+    }
+    #turn.on { display: block; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 14px rgba(212,175,55,.35); } 50% { box-shadow: 0 0 34px rgba(212,175,55,.75); } }
+
+    /* ---- layout ---- */
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .grid > div { min-width: 0; }
+    @media (min-width: 860px) { .grid { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
+
+    .card {
+        background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%);
+        border: 1px solid #b89961; border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,.6);
+        padding: 16px;
+    }
+    .card.flash-hit  { animation: hit  .9s ease-out; }
+    .card.flash-heal { animation: heal .9s ease-out; }
+    @keyframes hit  { 0% { background: #7a1414; } 100% { } }
+    @keyframes heal { 0% { background: #14532d; } 100% { } }
+    .card.mine-active { border: 2px solid #d4af37; box-shadow: 0 0 0 3px rgba(212,175,55,.25), 0 0 26px rgba(212,175,55,.5); }
+    h2 { font-family: 'Cinzel', Georgia, serif; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #b89961; margin-bottom: 10px; }
+
+    /* ---- my card ---- */
+    #my-name { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 26px; color: #d4af37; line-height: 1.1; margin-bottom: 12px; word-break: break-word; }
+    .hp-big { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 6px 0 8px; }
+    #my-hp { font-size: 64px; font-weight: 700; line-height: 1; }
+    #my-max { font-size: 26px; color: #9a8b70; }
+    .bar { height: 14px; background: rgba(0,0,0,.55); border: 1px solid #3e2513; border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+    .bar i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .6s ease, background-color .6s ease; }
+    .stats { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .stat { background: rgba(0,0,0,.4); border: 1px solid #3e2513; border-radius: 8px; padding: 6px 14px; text-align: center; min-width: 78px; }
+    .stat small { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #b89961; }
+    .stat b { font-size: 22px; font-family: 'Cinzel', Georgia, serif; color: #d4af37; }
+
+    .act { display: flex; gap: 8px; margin-bottom: 14px; }
+    .act input {
+        flex: 1; min-width: 0; font-size: 20px; text-align: center; padding: 10px;
+        background: rgba(0,0,0,.4); border: 1px solid #b89961; color: #e4d5b7; border-radius: 6px; outline: none;
+    }
+    .act input:focus { border-color: #d4af37; background: rgba(0,0,0,.6); }
+    button {
+        font: inherit; cursor: pointer; border-radius: 6px; padding: 10px 16px; font-weight: 700; color: #fff; border: 1px solid;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .b-dmg  { background: #8b0000; border-color: #5a0000; }
+    .b-heal { background: #166534; border-color: #14532d; }
+    .b-dmg:not(:disabled):hover  { background: #a30000; }
+    .b-heal:not(:disabled):hover { background: #15803d; }
+
+    .conds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 8px; }
+    .cond {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #3e2513; border: 1px solid #b89961; color: #e4d5b7; border-radius: 5px; padding: 4px 4px 4px 10px; font-size: 14px;
+    }
+    .cond.ro { padding: 1px 7px; font-size: 11px; }
+    .cond button { background: none; border: none; color: #f87171; padding: 0 6px; font-size: 18px; line-height: 1; }
+    select {
+        width: 100%; font-size: 16px; padding: 10px; background: rgba(0,0,0,.4); border: 1px solid #b89961; color: #e4d5b7; border-radius: 6px; outline: none;
+    }
+    select:disabled { opacity: .4; }
+
+    /* ---- order list ---- */
+    .row {
+        display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 10px;
+        padding: 8px 10px; margin-bottom: 8px; position: relative;
+        background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%);
+        border: 1px solid #5a4a30; border-radius: 8px;
+    }
+    .row.active { border: 2px solid #d4af37; box-shadow: 0 0 0 2px rgba(212,175,55,.2), 0 0 20px rgba(212,175,55,.45); }
+    .row.me { border-color: #b89961; }
+    .row.dead { opacity: .55; background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%); }
+    .row.dead .nm { text-decoration: line-through; }
+    .row.timer { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-color: #3b82f6; }
+    .row.timer .nm { color: #93c5fd; }
+    .ini {
+        width: 34px; height: 34px; border-radius: 50%; border: 2px solid #b89961; background: rgba(0,0,0,.4);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 14px; color: #d4af37;
+    }
+    .row.timer .ini { border-color: #3b82f6; color: #93c5fd; }
+    .nm { font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nm em { font-style: normal; font-weight: 400; font-size: 11px; color: #b89961; margin-left: 6px; letter-spacing: .08em; text-transform: uppercase; }
+    .rc { text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; }
+    .rc .mx { color: #9a8b70; font-weight: 400; }
+    .mini { height: 5px; background: rgba(0,0,0,.55); border-radius: 99px; overflow: hidden; margin-top: 4px; width: 84px; margin-left: auto; }
+    .mini i { display: block; height: 100%; border-radius: 99px; }
+    .rowconds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
+    .k-healthy { color: #4ade80; } .k-hurt { color: #c8d44a; } .k-bloodied { color: #f59e0b; } .k-critical { color: #ef4444; } .k-down { color: #9ca3af; }
+
+    #msg { text-align: center; color: #9a8b70; padding: 28px 12px; line-height: 1.6; }
+    #msg b { display: block; font-family: 'Cinzel', Georgia, serif; color: #d4af37; font-size: 20px; letter-spacing: .08em; margin-bottom: 6px; }
+    .hidden { display: none !important; }
+    .note { font-size: 13px; color: #9a8b70; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <div class="top">
+        <div id="round">Round -</div>
+        <div id="conn"><i></i><span id="conn-txt">Connecting…</span></div>
+    </div>
+
+    <div id="msg" class="hidden"></div>
+
+    <div id="main" class="hidden">
+        <div id="turn">Your turn</div>
+        <div class="grid">
+            <div>
+                <div class="card" id="mycard">
+                    <h2>Your character</h2>
+                    <div id="my-name"></div>
+
+                    <div id="my-body">
+                        <div class="hp-big"><span id="my-hp">0</span><span id="my-max">/ 0</span></div>
+                        <div class="bar"><i id="my-bar"></i></div>
+                        <div class="stats">
+                            <div class="stat"><small>AC</small><b id="my-ac">-</b></div>
+                            <div class="stat"><small>Initiative</small><b id="my-init">-</b></div>
+                        </div>
+
+                        <div class="act">
+                            <input id="amt" type="number" inputmode="numeric" min="1" placeholder="0" aria-label="Amount">
+                            <button id="btn-dmg" class="b-dmg">Damage</button>
+                            <button id="btn-heal" class="b-heal">Heal</button>
+                        </div>
+
+                        <h2>Conditions</h2>
+                        <div class="conds" id="my-conds"></div>
+                        <select id="cond-add" aria-label="Add condition"></select>
+                    </div>
+                    <div id="my-none" class="note hidden">You are not in the current encounter. This page will update as soon as the DM adds you.</div>
+                </div>
+            </div>
+
+            <div>
+                <h2>Initiative order</h2>
+                <div id="order"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    var HOST = params.get('h');
+    var TOKEN = params.get('t');
+    var peerOpts = window.EM_PEER_OPTIONS || {};   // optional custom broker, mirrors the tracker
+
+    var $ = function (id) { return document.getElementById(id); };
+    function esc(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    var peer = null, conn = null;
+    var joined = false, denied = false;
+    var lastMsgAt = 0, retryT = null, attempt = 0, openT = null;
+    var last = null;            // last state from the DM
+    var prevHp = null, wasMyTurn = false;
+
+    // ---------- status ----------
+    function setConn(kind, text) {
+        var el = $('conn');
+        el.className = kind;          // '', 'live', 'bad'
+        $('conn-txt').textContent = text;
+        var live = kind === 'live';
+        $('btn-dmg').disabled = !live;
+        $('btn-heal').disabled = !live;
+        $('cond-add').disabled = !live;
+        document.querySelectorAll('.cond button').forEach(function (b) { b.disabled = !live; });
+    }
+
+    function showMsg(title, body) {
+        $('msg').innerHTML = '<b>' + esc(title) + '</b>' + esc(body);
+        $('msg').classList.remove('hidden');
+        $('main').classList.add('hidden');
+    }
+    function showMain() {
+        $('msg').classList.add('hidden');
+        $('main').classList.remove('hidden');
+    }
+
+    // ---------- connection ----------
+    function cleanup() {
+        clearTimeout(openT);
+        joined = false;
+        if (conn) { try { conn.close(); } catch (e) {} conn = null; }
+        if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+    }
+
+    function restart(text, waitMs) {
+        if (denied) return;
+        cleanup();
+        setConn('', text || 'Reconnecting…');
+        clearTimeout(retryT);
+        var delay = waitMs || Math.min(10000, 1500 * (++attempt));
+        retryT = setTimeout(start, delay);
+    }
+
+    function start() {
+        if (denied) return;
+        clearTimeout(retryT);
+        setConn('', 'Connecting…');
+        if (typeof Peer === 'undefined') { setConn('bad', 'PeerJS failed to load'); showMsg('Cannot connect', 'The connection library could not be loaded. Check your internet connection and reload this page.'); return; }
+        var p;
+        try { p = new Peer(Object.assign({ debug: 1 }, peerOpts)); }
+        catch (e) { setConn('bad', 'Error'); return; }
+        peer = p;
+
+        p.on('open', function () {
+            if (peer !== p) return;
+            var c = p.connect(HOST, { reliable: true, serialization: 'json' });
+            conn = c;
+            openT = setTimeout(function () { if (conn === c && !joined) restart('Waiting for your DM…'); }, 15000);
+            c.on('open', function () { if (conn === c) c.send({ t: 'join', token: TOKEN }); });
+            c.on('data', function (m) { if (conn === c) onMsg(m); });
+            c.on('close', function () { if (conn === c && !denied) restart('Connection lost. Reconnecting…'); });
+            c.on('error', function () { if (conn === c && !denied) restart('Connection lost. Reconnecting…'); });
+        });
+        p.on('disconnected', function () { if (peer === p && !p.destroyed) { try { p.reconnect(); } catch (e) {} } });
+        p.on('error', function (err) {
+            if (peer !== p) return;
+            var t = err && err.type;
+            if (t === 'peer-unavailable') restart('Waiting for your DM to start the session…', 5000);
+            else restart('Reconnecting…');
+        });
+    }
+
+    function onMsg(m) {
+        if (!m || typeof m !== 'object') return;
+        lastMsgAt = Date.now();
+        if (m.t === 'ping') return;
+        if (m.t === 'denied') {
+            denied = true; cleanup();
+            setConn('bad', 'Link not valid');
+            showMsg('This link no longer works', 'Ask your DM for a fresh link.');
+            return;
+        }
+        if (m.t === 'state') {
+            if (!joined) { joined = true; attempt = 0; clearTimeout(openT); }
+            setConn('live', 'Live');
+            last = m;
+            render();
+        }
+    }
+
+    // Detect a silently dead connection (DM pings every 15s).
+    setInterval(function () {
+        if (joined && !denied && Date.now() - lastMsgAt > 40000) restart('Connection lost. Reconnecting…', 500);
+    }, 5000);
+
+    function send(obj) { if (conn && conn.open && joined) { try { conn.send(obj); } catch (e) {} } }
+
+    // ---------- rendering ----------
+    function hpColor(hp, max) {
+        if (hp <= 0) return '#6b7280';
+        var r = max > 0 ? hp / max : 1;
+        if (r > 0.75) return '#22c55e';
+        if (r > 0.5) return '#a3b83a';
+        if (r > 0.25) return '#e0822b';
+        return '#dc2626';
+    }
+
+    function render() {
+        var s = last;
+        if (!s) return;
+        showMain();
+        $('round').textContent = 'Round ' + s.round;
+        $('my-name').textContent = (s.me && s.me.name) || s.name || '';
+
+        var mine = s.me;
+        var myActive = !!(mine && s.activeId === mine.id);
+        $('turn').classList.toggle('on', myActive);
+        $('mycard').classList.toggle('mine-active', myActive);
+        if (myActive && !wasMyTurn) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
+        wasMyTurn = myActive;
+        document.title = myActive ? '▶ Your turn! - Encounter Master' : 'Encounter Master - Player';
+
+        $('my-body').classList.toggle('hidden', !mine);
+        $('my-none').classList.toggle('hidden', !!mine);
+
+        if (mine) {
+            var color = hpColor(mine.hp, mine.maxHp);
+            $('my-hp').textContent = mine.hp;
+            $('my-hp').style.color = color;
+            $('my-max').textContent = '/ ' + mine.maxHp;
+            var pct = mine.maxHp > 0 ? Math.max(0, Math.min(100, Math.round(mine.hp / mine.maxHp * 100))) : 0;
+            $('my-bar').style.width = pct + '%';
+            $('my-bar').style.background = color;
+            $('my-ac').textContent = mine.ac;
+            $('my-init').textContent = mine.init;
+
+            if (prevHp !== null && mine.hp !== prevHp) {
+                var card = $('mycard');
+                var cls = mine.hp < prevHp ? 'flash-hit' : 'flash-heal';
+                card.classList.remove('flash-hit', 'flash-heal');
+                void card.offsetWidth;
+                card.classList.add(cls);
+            }
+            prevHp = mine.hp;
+
+            $('my-conds').innerHTML = mine.conds.map(function (c) {
+                return '<span class="cond">' + esc(c) + '<button data-c="' + esc(c) + '" aria-label="Remove ' + esc(c) + '">&times;</button></span>';
+            }).join('');
+
+            var have = {};
+            mine.conds.forEach(function (c) { have[c] = 1; });
+            var sel = $('cond-add');
+            sel.innerHTML = '<option value="">+ Condition</option>' + s.lib.filter(function (c) { return !have[c]; })
+                .map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+        }
+
+        $('order').innerHTML = s.order.map(function (r) {
+            var cls = 'row';
+            if (r.active) cls += ' active';
+            if (r.me) cls += ' me';
+            if (r.dead) cls += ' dead';
+            if (r.kind === 'timer') {
+                return '<div class="' + cls + ' timer"><div class="ini">' + esc(r.init) + '</div>' +
+                    '<div><div class="nm">' + esc(r.name) + '</div></div>' +
+                    '<div class="rc" style="color:#93c5fd">' + r.rounds + (r.rounds === 1 ? ' round' : ' rounds') + '</div></div>';
+            }
+            var conds = (r.conds && r.conds.length) ? '<div class="rowconds">' + r.conds.map(function (c) { return '<span class="cond ro">' + esc(c) + '</span>'; }).join('') + '</div>' : '';
+            var right;
+            if (r.kind === 'pc') {
+                var col = hpColor(r.hp, r.max);
+                var p = r.max > 0 ? Math.max(0, Math.min(100, Math.round(r.hp / r.max * 100))) : 0;
+                right = '<div class="rc" style="color:' + col + '">' + r.hp + '<span class="mx"> / ' + r.max + '</span></div>' +
+                    '<div class="mini"><i style="width:' + p + '%;background:' + col + '"></i></div>';
+            } else {
+                var colors = { healthy: '#22c55e', hurt: '#a3b83a', bloodied: '#e0822b', critical: '#dc2626', down: '#6b7280' };
+                right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
+                    '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
+            }
+            return '<div class="' + cls + '"><div class="ini">' + esc(r.init) + '</div>' +
+                '<div><div class="nm">' + esc(r.name) + (r.me ? '<em>you</em>' : '') + '</div>' + conds + '</div>' +
+                '<div>' + right + '</div></div>';
+        }).join('');
+    }
+
+    // ---------- controls ----------
+    function amount() {
+        var n = parseInt($('amt').value, 10);
+        return (isFinite(n) && n > 0 && n <= 9999) ? n : 0;
+    }
+    $('btn-dmg').addEventListener('click', function () { var n = amount(); if (n) { send({ t: 'dmg', n: n }); $('amt').value = ''; } });
+    $('btn-heal').addEventListener('click', function () { var n = amount(); if (n) { send({ t: 'heal', n: n }); $('amt').value = ''; } });
+    $('my-conds').addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-c]');
+        if (b) send({ t: 'rmCond', c: b.getAttribute('data-c') });
+    });
+    $('cond-add').addEventListener('change', function () {
+        var v = this.value;
+        if (v) send({ t: 'addCond', c: v });
+        this.value = '';
+    });
+
+    // Pasting a new link into the same tab only changes the #hash, which doesn't reload the page.
+    window.addEventListener('hashchange', function () { location.reload(); });
+
+    // ---------- go ----------
+    if (!HOST || !TOKEN) {
+        setConn('bad', 'No link');
+        showMsg('Link incomplete', 'Open the full personal link your DM sent you (it ends with # and a long code).');
+    } else {
+        showMsg('Connecting…', 'Looking for your DM’s session.');
+        start();
+    }
+})();
+</script>
+</body>
+</html>
