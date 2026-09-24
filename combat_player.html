@@ -181,10 +181,24 @@
     .le-none { color: #6b7280; font-style: italic; }
 
     /* ---- effects (round timers) ---- */
-    .fxhead { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #3e2513; }
-    .fxhead h2 { margin: 0; }
-    #fx-toggle { width: 26px; height: 26px; padding: 0; line-height: 1; text-align: center; background: #1a1715; border-color: #b89961; color: #d4af37; }
-    #fx-form { margin-top: 10px; }
+    /* Conditions & effects: two clearly different things, each with its own button and small form */
+    .ce-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: #9a8b70; margin: 2px 0 10px; }
+    .ce-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .ce-legend .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+    .sw.c { background: #3e2513; border: 1px solid #b89961; }
+    .sw.e { background: #0f172a; border: 1px solid #3b82f6; }
+    .ce-btns { display: flex; gap: 8px; }
+    .ce-btn { flex: 1; min-width: 0; padding: 10px 6px; font-size: clamp(12.5px, 3.3vw, 14px); line-height: 1.2; }   /* wraps rather than cutting text on very narrow phones */
+    .ce-btn.c { background: #2c1a0d; border-color: #b89961; color: #e4d5b7; }
+    .ce-btn.e { background: #0f172a; border-color: #3b82f6; color: #93c5fd; }
+    .ce-btn.c:hover, .ce-btn.c.on { background: #3e2513; border-color: #d4af37; }
+    .ce-btn.e:hover, .ce-btn.e.on { background: #172554; border-color: #60a5fa; }
+    .ce-btn.on { box-shadow: inset 0 -3px 0 currentColor; }
+    .ce-form { margin-top: 8px; padding: 10px; border-radius: 8px; border: 1px solid; }
+    .ce-form.c { border-color: #5a4a30; background: rgba(62,37,19,.25); }
+    .ce-form.e { border-color: #1e40af; background: rgba(15,23,42,.55); }
+    .ce-hint { font-size: 12px; color: #9a8b70; line-height: 1.45; margin-bottom: 8px; }
+    .ce-none { font-size: 12px; color: #6b7280; font-style: italic; }
     .fxrow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
     .fxrow input[type=text], .fxrow input[type=number] {
         min-width: 0; font-size: 16px; padding: 9px; background: rgba(0,0,0,.4); border: 1px solid #b89961; color: #e4d5b7; border-radius: 6px; outline: none;
@@ -207,6 +221,23 @@
     .row.timer .nm em { color: #6b8fc4; }
 
     .k-healthy { color: #22c55e; } .k-hurt { color: #eab308; } .k-bloodied, .k-critical { color: #ef4444; } .k-down { color: #9ca3af; }
+    .k-dying { color: #f87171; } .k-stable { color: #4ade80; } .k-dead { color: #9ca3af; }
+
+    /* ---- death saves (read-only here: the DM records them) ---- */
+    #my-ds { margin: 0 0 14px; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #8b0000; background: linear-gradient(135deg, #2a1414 0%, #160a0a 100%); }
+    #my-ds.stable { border-color: #3f7d4f; background: linear-gradient(135deg, #16241a 0%, #0f1611 100%); }
+    #my-ds.dead { border-color: #4b5563; background: #141414; }
+    #my-ds .dt { font-family: 'Cinzel', Georgia, serif; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; font-size: 18px; margin-bottom: 8px; }
+    #my-ds.dying .dt { color: #f87171; } #my-ds.stable .dt { color: #4ade80; } #my-ds.dead .dt { color: #9ca3af; }
+    #my-ds .dr { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
+    #my-ds .dg { display: inline-flex; align-items: center; gap: 5px; }
+    #my-ds .dg small { font-family: 'Cinzel', Georgia, serif; font-size: 11px; letter-spacing: .1em; margin-right: 3px; }
+    .dp { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+          background: rgba(0,0,0,.45); border: 1.5px solid #5a4a30; color: transparent; }
+    .dp.s { border-color: #3f7d4f; } .dp.f { border-color: #7f1d1d; }
+    .dp.s.on { background: #16a34a; border-color: #4ade80; color: #fff; }
+    .dp.f.on { background: #b91c1c; border-color: #f87171; color: #fff; }
+    #my-ds .dn { font-size: 12px; color: #9a8b70; margin-top: 8px; }
 
     #msg { text-align: center; color: #9a8b70; padding: 28px 12px; line-height: 1.6; }
     #msg b { display: block; font-family: 'Cinzel', Georgia, serif; color: #d4af37; font-size: 20px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -236,6 +267,7 @@
                     <div id="my-body">
                         <div class="hp-big"><span id="my-hp">0</span><span id="my-max">/ 0</span><span id="my-temp" class="hidden"></span></div>
                         <div class="bar"><i id="my-bar"></i></div>
+                        <div id="my-ds" class="hidden"></div>
                         <div class="stats">
                             <div class="stat"><small>AC</small><b id="my-ac">-</b></div>
                             <div class="stat"><small>Initiative</small><b id="my-init">-</b></div>
@@ -255,22 +287,29 @@
                             <div><label for="in-ac">AC</label><input id="in-ac" data-f="ac" type="number" inputmode="numeric" min="0" max="99"></div>
                         </div>
 
-                        <h2>Conditions</h2>
+                        <h2>Conditions &amp; effects</h2>
                         <div class="conds" id="my-conds"></div>
-                        <select id="cond-add" aria-label="Add condition"></select>
-
-                        <div class="fxhead">
-                            <button id="fx-toggle" aria-expanded="false" aria-controls="fx-form" title="Add a round timer (e.g. Bless, Bane)">+</button>
-                            <h2>Add effect</h2>
+                        <div class="ce-legend">
+                            <span><i class="sw c"></i>Condition on you: stays until removed</span>
+                            <span><i class="sw e"></i>Timed effect: counts down each round</span>
                         </div>
-                        <div id="fx-form" class="hidden">
+                        <div class="ce-btns">
+                            <button id="cond-toggle" class="ce-btn c" aria-expanded="false" aria-controls="cond-form">+ Condition on me</button>
+                            <button id="fx-toggle" class="ce-btn e" aria-expanded="false" aria-controls="fx-form">+ Timed effect</button>
+                        </div>
+                        <div id="cond-form" class="ce-form c hidden">
+                            <div class="ce-hint">Prone, Poisoned, Grappled&hellip; It stays on you until you or your DM remove it (tap &times; on it).</div>
+                            <select id="cond-add" aria-label="Condition on me"></select>
+                        </div>
+                        <div id="fx-form" class="ce-form e hidden">
+                            <div class="ce-hint">For a spell or ability that lasts a number of rounds, e.g. Bless for 10 rounds on 3 allies. It counts down on your turn and shows in the initiative order.</div>
                             <div class="fxrow">
                                 <input id="fx-name" type="text" maxlength="30" placeholder="e.g. Bless" aria-label="Effect name">
                                 <input id="fx-rounds" type="number" inputmode="numeric" min="1" max="999" value="10" aria-label="Rounds">
                                 <span>rounds</span>
                             </div>
                             <div id="fx-targets"></div>
-                            <button id="fx-add" class="b-heal">Add effect</button>
+                            <button id="fx-add" class="b-heal">Start timer</button>
                         </div>
 
                         <div class="loghead">
@@ -427,6 +466,13 @@
     function fmtEntry(e) {
         var names = ['HP', 'Max HP', 'Temp'];
         var b = e.b || [0, 0, 0], a = e.a || [0, 0, 0];
+        var mine0 = e.by === 'Player';
+        if (e.k === 'ds') {   // a death save line: plain text, plus the HP change if it came with one (natural 20, revive)
+            var moved = b[0] !== a[0];
+            return '<div class="le"><div><span class="t">' + fmtTime(e.ts) + '</span> <span class="who' + (mine0 ? ' me' : '') + '">' + (mine0 ? 'You' : esc(e.by)) +
+                '</span> <span class="what" style="color:#f87171">Death save</span> <span>' + esc(e.x || '') + '</span></div>' +
+                (moved ? '<div class="ba">HP ' + Number(b[0]) + ' &rarr; ' + Number(a[0]) + '</div>' : '') + '</div>';
+        }
         var label = e.k === 'dmg' ? 'Damage ' + Number(e.n) : e.k === 'heal' ? 'Heal ' + Number(e.n) : 'Edit';
         var changes = [1, 0, 2].filter(function (i) { return b[i] !== a[i]; }).map(function (i) {
             var d = a[i] - b[i];
@@ -459,6 +505,7 @@
         var mine = s.me;
         var myActive = !!(mine && s.activeId === mine.id);
         $('turn').classList.toggle('on', myActive);
+        $('turn').textContent = myActive && mine.ds && mine.ds.state === 'dying' ? 'Your turn: death save' : 'Your turn';
         $('mycard').classList.toggle('mine-active', myActive);
         if (myActive && !wasMyTurn) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
         wasMyTurn = myActive;
@@ -492,6 +539,31 @@
             });
             renderLog(mine.log || []);
 
+            // Death saves: shown here, but only the DM's tracker can change them.
+            var ds = mine.ds, dsEl = $('my-ds');
+            dsEl.classList.toggle('hidden', !ds);
+            if (ds) {
+                var pips = function (kind, n) {
+                    var out = '';
+                    for (var k = 1; k <= 3; k++) out += '<span class="dp ' + kind + (n >= k ? ' on' : '') + '">' + (kind === 's' ? '&#10003;' : '&#10005;') + '</span>';
+                    return out;
+                };
+                dsEl.className = ds.state;
+                dsEl.innerHTML = ds.state === 'dying'
+                    ? '<div class="dt">Dying</div><div class="dr"><span class="dg"><small style="color:#4ade80">Saves</small>' + pips('s', Number(ds.s) || 0) +
+                      '</span><span class="dg"><small style="color:#f87171">Fails</small>' + pips('f', Number(ds.f) || 0) + '</span></div>' +
+                      '<div class="dn">Your DM records your death saves.</div>'
+                    : ds.state === 'stable'
+                    ? '<div class="dt">Stable</div><div class="dn">Unconscious at 0 HP, no more death saves. Healing brings you back.</div>'
+                    : '<div class="dt">&#9760; Dead</div><div class="dn">Only your DM can bring you back.</div>';
+            }
+            // While you're down, hits are recorded by the DM (they count as failed saves); the dead can't be healed or edited.
+            var live = $('conn').className === 'live';
+            $('btn-dmg').disabled = !live || !!ds;
+            $('btn-dmg').title = ds ? 'While you are at 0 HP your DM records any damage' : '';
+            $('btn-heal').disabled = !live || !!(ds && ds.state === 'dead');
+            ['in-hp', 'in-max', 'in-temp'].forEach(function (k) { $(k).disabled = !live || !!(ds && ds.state === 'dead'); });
+
             if (prevHp !== null && mine.hp !== prevHp) {
                 var card = $('mycard');
                 var cls = mine.hp < prevHp ? 'flash-hit' : 'flash-heal';
@@ -501,16 +573,17 @@
             }
             prevHp = mine.hp;
 
-            $('my-conds').innerHTML = mine.conds.map(function (c) {
-                return '<span class="cond">' + esc(c) + '<button data-c="' + esc(c) + '" aria-label="Remove ' + esc(c) + '">&times;</button></span>';
+            var chipHtml = mine.conds.map(function (c) {
+                return '<span class="cond" title="Condition on you: stays until removed">' + esc(c) + '<button data-c="' + esc(c) + '" aria-label="Remove ' + esc(c) + '">&times;</button></span>';
             }).join('') + (mine.lconds || []).map(function (x) {
-                return '<span class="cond lk" title="From a round timer set by your DM">' + esc(x.l) + ' (' + Number(x.n) + ')</span>';
+                return '<span class="cond lk" title="Timed effect: ' + Number(x.n) + ' round' + (Number(x.n) === 1 ? '' : 's') + ' left">' + esc(x.l) + ' (' + Number(x.n) + ')</span>';
             }).join('');
+            $('my-conds').innerHTML = chipHtml || '<span class="ce-none">Nothing on you right now.</span>';
 
             var have = {};
             mine.conds.forEach(function (c) { have[c] = 1; });
             var sel = $('cond-add');
-            sel.innerHTML = '<option value="">+ Condition</option>' + s.lib.filter(function (c) { return !have[c]; })
+            sel.innerHTML = '<option value="">Choose a condition\u2026</option>' + s.lib.filter(function (c) { return !have[c]; })
                 .map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
         }
 
@@ -530,13 +603,13 @@
                 }
                 return '<div class="' + cls + ' timer"><div class="ini">' + esc(r.init) + '</div>' +
                     '<div><div class="nm">' + esc(r.name) + (r.by ? '<em>' + (r.mine ? 'yours' : 'by ' + esc(r.by)) + '</em>' : '') + '</div></div>' +
-                    '<div><div class="rc" style="color:#93c5fd">' + r.rounds + (r.rounds === 1 ? ' round' : ' rounds') + '</div>' + act + '</div></div>';
+                    '<div><div class="rc" style="color:#93c5fd">' + (r.rounds > 0 ? r.rounds + (r.rounds === 1 ? ' round' : ' rounds') : 'Ends') + '</div>' + act + '</div></div>';
             }
             var chips = (r.conds || []).map(function (c) { return '<span class="cond ro">' + esc(c) + '</span>'; })
                 .concat((r.lconds || []).map(function (x) { return '<span class="cond lk ro">' + esc(x.l) + ' (' + Number(x.n) + ')</span>'; }));
             var conds = chips.length ? '<div class="rowconds">' + chips.join('') + '</div>' : '';
             // Colour only for everyone (your own numbers are in your card above)
-            var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280' };
+            var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280', dying: '#ef4444', stable: '#22c55e', dead: '#6b7280' };
             var right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
                 '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
             return '<div class="' + cls + '"><div class="ini">' + esc(r.init) + '</div>' +
@@ -571,25 +644,31 @@
         if (i.checked) picked[i.value] = true; else delete picked[i.value];
         i.closest('.tg').classList.toggle('on', i.checked);
     });
-    $('fx-toggle').addEventListener('click', function () {
-        var open = $('fx-form').classList.toggle('hidden') === false;
-        this.textContent = open ? '\u2212' : '+';
-        this.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
+    // "+ Condition on me" and "+ Timed effect" each open their own small form; only one is open at a time.
+    function openCeForm(which) {   // 'cond' | 'fx' | null
+        [['cond', 'cond-toggle', 'cond-form'], ['fx', 'fx-toggle', 'fx-form']].forEach(function (x) {
+            var on = which === x[0];
+            $(x[2]).classList.toggle('hidden', !on);
+            $(x[1]).classList.toggle('on', on);
+            $(x[1]).setAttribute('aria-expanded', on ? 'true' : 'false');
+        });
+    }
+    $('cond-toggle').addEventListener('click', function () { openCeForm($('cond-form').classList.contains('hidden') ? 'cond' : null); });
+    $('fx-toggle').addEventListener('click', function () { openCeForm($('fx-form').classList.contains('hidden') ? 'fx' : null); });
     $('fx-add').addEventListener('click', function () {
         var name = $('fx-name').value.trim();
         var rounds = parseInt($('fx-rounds').value, 10);
         var btn = this;
         if (!name || !isFinite(rounds) || rounds < 1 || rounds > 999) {
             btn.textContent = !name ? 'Give it a name' : 'Rounds 1-999';
-            setTimeout(function () { btn.textContent = 'Add effect'; }, 1500);
+            setTimeout(function () { btn.textContent = 'Start timer'; }, 1500);
             return;
         }
         send({ t: 'addTimer', name: name, rounds: rounds, targets: Object.keys(picked).map(Number) });
         $('fx-name').value = '';
         picked = {}; targetSig = null; if (last) renderTargets(last.order);
-        btn.textContent = 'Added!';
-        setTimeout(function () { btn.textContent = 'Add effect'; }, 1500);
+        btn.textContent = 'Timer started!';
+        setTimeout(function () { btn.textContent = 'Start timer'; openCeForm(null); }, 1200);
     });
     $('order').addEventListener('click', function (e) {
         var b = e.target.closest('button[data-id]');
@@ -619,7 +698,7 @@
     });
     $('cond-add').addEventListener('change', function () {
         var v = this.value;
-        if (v) send({ t: 'addCond', c: v });
+        if (v) { send({ t: 'addCond', c: v }); openCeForm(null); }
         this.value = '';
     });
 
