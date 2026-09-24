@@ -238,6 +238,11 @@
     .dp.s.on { background: #16a34a; border-color: #4ade80; color: #fff; }
     .dp.f.on { background: #b91c1c; border-color: #f87171; color: #fff; }
     #my-ds .dn { font-size: 12px; color: #9a8b70; margin-top: 8px; }
+    /* Saves hidden by the DM: only "you're down", with a slow heartbeat glow */
+    #my-ds.down { border-color: #7f1d1d; animation: bleed 2.4s ease-in-out infinite; }
+    #my-ds.down .dt { color: #f87171; }
+    #my-ds.down .dx { font-size: 14px; color: #e4d5b7; line-height: 1.5; }
+    @keyframes bleed { 0%,100% { box-shadow: 0 0 0 rgba(185,28,28,0); } 50% { box-shadow: 0 0 22px rgba(185,28,28,.55); } }
 
     #msg { text-align: center; color: #9a8b70; padding: 28px 12px; line-height: 1.6; }
     #msg b { display: block; font-family: 'Cinzel', Georgia, serif; color: #d4af37; font-size: 20px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -505,7 +510,8 @@
         var mine = s.me;
         var myActive = !!(mine && s.activeId === mine.id);
         $('turn').classList.toggle('on', myActive);
-        $('turn').textContent = myActive && mine.ds && mine.ds.state === 'dying' ? 'Your turn: death save' : 'Your turn';
+        $('turn').textContent = !(myActive && mine.ds) ? 'Your turn'
+            : mine.ds.hidden ? 'Your turn: you are down' : mine.ds.state === 'dying' ? 'Your turn: death save' : 'Your turn';
         $('mycard').classList.toggle('mine-active', myActive);
         if (myActive && !wasMyTurn) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
         wasMyTurn = myActive;
@@ -548,8 +554,11 @@
                     for (var k = 1; k <= 3; k++) out += '<span class="dp ' + kind + (n >= k ? ' on' : '') + '">' + (kind === 's' ? '&#10003;' : '&#10005;') + '</span>';
                     return out;
                 };
-                dsEl.className = ds.state;
-                dsEl.innerHTML = ds.state === 'dying'
+                dsEl.className = ds.hidden ? 'down' : ds.state;
+                dsEl.innerHTML = ds.hidden
+                    ? '<div class="dt">Bleeding out</div><div class="dx">You are unconscious at 0 HP and bleeding out. Your fate is in the dice, and in your friends\u2019 hands.</div>' +
+                      '<div class="dn">Your DM will tell you what happens.</div>'
+                    : ds.state === 'dying'
                     ? '<div class="dt">Dying</div><div class="dr"><span class="dg"><small style="color:#4ade80">Saves</small>' + pips('s', Number(ds.s) || 0) +
                       '</span><span class="dg"><small style="color:#f87171">Fails</small>' + pips('f', Number(ds.f) || 0) + '</span></div>' +
                       '<div class="dn">Your DM records your death saves.</div>'
@@ -561,6 +570,7 @@
             var live = $('conn').className === 'live';
             $('btn-dmg').disabled = !live || !!ds;
             $('btn-dmg').title = ds ? 'While you are at 0 HP your DM records any damage' : '';
+            // (With saves hidden the page doesn't know whether you died, so Heal and the boxes stay on; the DM's tracker ignores them if you did.)
             $('btn-heal').disabled = !live || !!(ds && ds.state === 'dead');
             ['in-hp', 'in-max', 'in-temp'].forEach(function (k) { $(k).disabled = !live || !!(ds && ds.state === 'dead'); });
 
