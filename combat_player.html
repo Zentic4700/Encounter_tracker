@@ -148,6 +148,7 @@
     .nm em { font-style: normal; font-weight: 400; font-size: 11px; color: #b89961; margin-left: 6px; letter-spacing: .08em; text-transform: uppercase; }
     .rc { text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; }
     .rc .mx { color: #9a8b70; font-weight: 400; }
+    .rc .lb { font-size: 10px; color: #b89961; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; margin-right: 6px; }
     .mini { height: 5px; background: rgba(0,0,0,.55); border-radius: 99px; overflow: hidden; margin-top: 4px; width: 84px; margin-left: auto; }
     .mini i { display: block; height: 100%; border-radius: 99px; }
     .rowconds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
@@ -618,9 +619,13 @@
             var chips = (r.conds || []).map(function (c) { return '<span class="cond ro">' + esc(c) + '</span>'; })
                 .concat((r.lconds || []).map(function (x) { return '<span class="cond lk ro">' + esc(x.l) + ' (' + Number(x.n) + ')</span>'; }));
             var conds = chips.length ? '<div class="rowconds">' + chips.join('') + '</div>' : '';
-            // Colour only for everyone (your own numbers are in your card above)
+            // Colour band for everyone; exact numbers only on rows the DM allows (your own numbers are in your card above)
             var colors = { healthy: '#22c55e', hurt: '#eab308', bloodied: '#ef4444', critical: '#ef4444', down: '#6b7280', dying: '#ef4444', stable: '#22c55e', dead: '#6b7280' };
-            var right = '<div class="rc k-' + esc(r.k) + '">' + esc(r.status) + '</div>' +
+            // Exact HP only when the DM allows it for this row (r.hp is then sent); otherwise just the status word.
+            var hpTxt = typeof r.hp === 'number'
+                ? '<span class="lb">' + esc(r.status) + '</span>' + Number(r.hp) + ' <span class="mx">/ ' + Number(r.max) + '</span>' + (Number(r.temp) > 0 ? '<span class="tmp">+' + Number(r.temp) + '</span>' : '')
+                : esc(r.status);
+            var right = '<div class="rc k-' + esc(r.k) + '">' + hpTxt + '</div>' +
                 '<div class="mini"><i style="width:' + (Number(r.pct) || 0) + '%;background:' + (colors[r.k] || '#6b7280') + '"></i></div>';
             return '<div class="' + cls + '"><div class="ini">' + esc(r.init) + '</div>' +
                 '<div><div class="nm">' + esc(r.name) + (r.me ? '<em>you</em>' : '') + '</div>' + conds + '</div>' +
