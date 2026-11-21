@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encounter Master - Turn Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+        font-family: 'Lato', system-ui, sans-serif;
+        background-color: #12100e;
+        background-image: radial-gradient(circle at center, #1a1715 0%, #0a0908 100%);
+        color: #e4d5b7;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        cursor: default;
+    }
+    .cinzel { font-family: 'Cinzel', Georgia, serif; }
+
+    /* ---- Header ---- */
+    header {
+        flex: 0 0 auto;
+        text-align: center;
+        padding: 2.2vh 2vw 1.4vh;
+        border-bottom: 2px solid #b89961;
+        background: #241e19;
+        box-shadow: 0 8px 16px -6px rgba(0,0,0,0.7);
+    }
+    #round {
+        font-family: 'Cinzel', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(28px, 6vh, 72px);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #d4af37;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+        line-height: 1;
+    }
+
+    /* Round: gold seal with the number, "Round" next to it (as on the tracker) */
+    #round { display: inline-flex; align-items: center; gap: .4em; }
+    #round .seal { width: 1.45em; height: 1.45em; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0; font-size: .95em;
+        color: #1a1208; text-shadow: 0 1px 0 rgba(255,255,255,.35); background: radial-gradient(circle at 35% 30%, #f6dc84, #c9a23a 60%, #7a5f23);
+        box-shadow: 0 0 0 2px #2c1a0d, 0 0 0 4px #d4af37, 0 3px 10px rgba(0,0,0,.7); }
+    #round .seal.pop { animation: sealPop .7s ease-out; }
+    @keyframes sealPop { 0% { transform: scale(1); } 25% { transform: scale(1.25); } 60% { transform: scale(.96); } 100% { transform: scale(1); } }
+
+    /* ---- List ---- */
+    #list {
+        --u: 90px;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 2vh 3vw 1vh 6vw;
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--u) * 0.1);
+        scrollbar-width: none;
+    }
+    #list::-webkit-scrollbar { display: none; }
+
+    .row {
+        position: relative;
+        flex: 0 0 var(--u);
+        height: var(--u);
+        display: grid;
+        grid-template-columns: calc(var(--u) * 0.8) minmax(0, 1fr) minmax(calc(var(--u) * 3.2), 30%);
+        align-items: center;
+        gap: calc(var(--u) * 0.28);
+        padding: 0 calc(var(--u) * 0.3);
+        background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%);
+        border: 1px solid #b89961;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease, opacity .3s ease;
+    }
+    .row.active {
+        border: 2px solid #d4af37;
+        box-shadow: 0 0 0 3px rgba(212,175,55,.25), 0 0 34px rgba(212,175,55,.55);
+        transform: scale(1.015);
+        z-index: 2;
+    }
+    .row.active::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: calc(var(--u) * 0.09);
+        background: linear-gradient(180deg, #f4d878, #d4af37 40%, #a3801f);
+        border-radius: 8px 0 0 8px;
+        box-shadow: 0 0 12px rgba(212,175,55,.7);
+    }
+    .row.active::after {
+        content: '\25B6';
+        position: absolute;
+        left: calc(var(--u) * -0.6);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: calc(var(--u) * 0.4);
+        color: #d4af37;
+        animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+    .row.dead {
+        background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%);
+        border-color: #8b0000;
+        opacity: .6;
+    }
+    .row.dead .name { text-decoration: line-through; text-decoration-thickness: 2px; }
+
+    .row.timer {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-color: #3b82f6;
+    }
+    .row.timer .name { color: #93c5fd; }
+    .row.timer .init { border-color: #3b82f6; color: #93c5fd; }
+    .row.timer.active::before { background: linear-gradient(180deg, #93c5fd, #3b82f6 40%, #1d4ed8); box-shadow: 0 0 12px rgba(59,130,246,.7); }
+    .row.timer.active { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 0 34px rgba(59,130,246,.5); }
+    .row.timer.active::after { color: #3b82f6; }
+
+    .row.hit  { animation: hit  .9s ease-out; }
+    .row.heal { animation: heal .9s ease-out; }
+    @keyframes hit  { 0% { background: #7a1414; } 100% { } }
+    @keyframes heal { 0% { background: #14532d; } 100% { } }
+
+    .init {
+        width: calc(var(--u) * 0.72);
+        height: calc(var(--u) * 0.72);
+        border-radius: 50%;
+        border: 2px solid #b89961;
+        background: rgba(0,0,0,.4);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Cinzel', Georgia, serif;
+        font-weight: 700;
+        font-size: calc(var(--u) * 0.34);
+        color: #d4af37;
+    }
+
+    .who { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: calc(var(--u) * 0.05); }
+    .name {
+        font-weight: 700;
+        font-size: calc(var(--u) * 0.42);
+        line-height: 1.1;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .conds { display: flex; flex-wrap: nowrap; gap: calc(var(--u) * 0.08); overflow: hidden; }
+    .cond.lk { background: #0f172a; border-color: #3b82f6; color: #93c5fd; }   /* from an attached round timer */
+    /* Tags from tracker v1.6.1: icon, name, who it is from, rounds left; coloured by kind like on the tracker */
+    .cond.fx { display: inline-flex; align-items: center; gap: .3em; font-weight: 700; }
+    .cond.fx svg { width: 1.05em; height: 1.05em; flex: none; fill: currentColor; }
+    .cond.fx em { font-weight: 400; font-size: .82em; opacity: .85; padding-left: .35em; border-left: 1px solid currentColor; }
+    .cond.fx b { padding: 0 .4em; border-radius: .7em; background: rgba(0,0,0,.5); color: #fff; font-size: .85em; }
+    .cond.fx.fk-cond > svg { color: #f4d878; }
+    .cond.fx.fk-buff   { background: #12241a; border-color: #3f9d5f; color: #c9f7d8; }
+    .cond.fx.fk-debuff { background: #2a1414; border-color: #b0483f; color: #fed7d7; }
+    .cond.fx.fk-other  { background: #1c1830; border-color: #7c6bb5; color: #e4defe; }
+    .cond.fx.fk-conc   { background: #201533; border-color: #a78bfa; border-style: dashed; color: #ede4ff; }
+    .cond.fx.fk-timer  { background: #0f172a; border-color: #3b82f6; color: #bfdbfe; }
+    .cond.fx.fk-tf     { background: #10222b; border-color: #3b9fb8; color: #a5e8f7; }
+    .cond.fx.ended  { opacity: .5; } .cond.fx.ended span { text-decoration: line-through; }
+    .cond.fx .lv { display: none; }
+    /* Tags on their own line under the name, as wide as the row (name + HP on the line above) */
+    /* name on the left half; status + HP bar start at the middle of the row, at the same place on every row */
+    .row.tl-under { grid-template-columns: calc(var(--u) * 0.8) minmax(0, 1fr) minmax(calc(var(--u) * 3.7), 51%);
+                    grid-template-rows: auto auto; align-content: center; row-gap: calc(var(--u) * 0.06); column-gap: calc(var(--u) * 0.4); }
+    .row.tl-under .init { grid-row: 1 / 3; }
+    .row.tl-under .who, .row.tl-under .hp { grid-row: 1; }
+    .row.tl-under > .conds { grid-row: 2; grid-column: 2 / 4; min-width: 0; }
+    .row.tl-under .name { font-size: calc(var(--u) * 0.38); }
+    .row.tl-under .hp { flex-direction: row; align-items: center; gap: calc(var(--u) * 0.25); }
+    /* One fixed-width field for the status word or the HP numbers, so every bar starts and ends at the same place */
+    .row.tl-under .hp-text { font-size: calc(var(--u) * 0.34); flex: none; width: calc(var(--u) * 2.3); text-align: left; overflow: hidden; }
+    .row.tl-under .hp-text small { display: none; }          /* HP numbers shown: the colour says Healthy / Hurt / Bloodied */
+    .row.tl-under .hp-text.tight { font-size: calc(var(--u) * 0.28); }
+    .row.tl-under .hp-text.tighter { font-size: calc(var(--u) * 0.23); }
+    .row.tl-under .bar { flex: 1; min-width: calc(var(--u) * 1.2); height: calc(var(--u) * 0.17); }
+    /* Crowded rows, step by step: no caster names, smaller tags, conditions as icon only, then "+N" */
+    .conds.nosrc .cond.fx em { display: none; }
+    .conds.fit1 .cond { font-size: calc(var(--u) * 0.19); }
+    .conds.fit2 .cond.fx.fk-cond > span { display: none; }
+    .conds.fit2 .cond.fx.fk-cond .lv { display: inline; }
+    .conds.fit2 .cond.fx.fk-cond { padding: 0 calc(var(--u) * 0.06); }
+    .cond.more { background: #2a241d; border-color: #d4af37; color: #f4d878; font-weight: 700; }
+    /* Optional: a second tag line for very busy rows (the row grows a little) */
+    .row.tall { flex-basis: calc(var(--u) * 1.32); height: calc(var(--u) * 1.32); }
+    .row.tall > .conds { flex-wrap: wrap; max-height: calc(var(--u) * 0.72); row-gap: calc(var(--u) * 0.05); }
+    .cond {
+        background: #3e2513;
+        border: 1px solid #b89961;
+        color: #e4d5b7;
+        border-radius: 4px;
+        padding: 0 calc(var(--u) * 0.1);
+        font-size: calc(var(--u) * 0.22);
+        line-height: 1.5;
+        white-space: nowrap;
+    }
+
+    .hp { display: flex; flex-direction: column; gap: calc(var(--u) * 0.08); min-width: 0; }
+    .hp-text {
+        text-align: right;
+        font-weight: 700;
+        font-size: calc(var(--u) * 0.36);
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+    .hp-text small { font-size: .6em; color: #b89961; font-weight: 400; margin-right: .3em; letter-spacing: .05em; }
+    .hp-text .max { color: #9a8b70; font-weight: 400; }
+    .hp-text .tmp { color: #93c5fd; font-weight: 700; font-size: .7em; }
+    .bar {
+        height: calc(var(--u) * 0.14);
+        background: rgba(0,0,0,.55);
+        border: 1px solid #3e2513;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .bar i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .6s ease, background-color .6s ease; }
+
+    .k-healthy { color: #22c55e; }
+    .k-hurt { color: #eab308; }
+    .k-bloodied { color: #ef4444; }
+    .k-critical { color: #ef4444; }
+    .k-down { color: #9ca3af; }
+    .k-dying { color: #f87171; }
+    .k-stable { color: #4ade80; }
+    .k-dead { color: #9ca3af; }
+
+    /* ---- Focus mode: who has the turn, who is up next ---- */
+    #focus {
+        display: none;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+        gap: 2.2vh;
+        padding: 3vh 5vw 2vh;
+        overflow: hidden;
+    }
+    body.mode-focus #list { display: none; }
+    body.mode-focus #focus { display: flex; }
+
+    .f-card {
+        position: relative;
+        background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%);
+        border: 1px solid #b89961;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,.6);
+        min-width: 0;
+        transition: border-color .3s ease, opacity .3s ease;
+    }
+    .f-card.hit  { animation: hit  .9s ease-out; }
+    .f-card.heal { animation: heal .9s ease-out; }
+    .f-card.enter { animation: enter .45s ease-out; }
+    @keyframes enter { 0% { opacity: 0; transform: translateY(2.5vh); } 100% { opacity: 1; transform: none; } }
+
+    .f-label {
+        font-family: 'Cinzel', Georgia, serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .3em;
+        color: #d4af37;
+        font-size: clamp(13px, 2.4vh, 30px);
+        white-space: nowrap;
+    }
+    .f-rnd {
+        display: inline-block;
+        margin-left: .8em;
+        padding: .05em .6em;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        font-size: .75em;
+        letter-spacing: .12em;
+        opacity: .85;
+    }
+    .f-name {
+        font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        min-width: 0;
+    }
+    .f-conds { display: flex; flex-wrap: wrap; gap: .4em; }
+    .f-conds .cond { font-size: 1em; padding: .1em .55em; }
+    .f-status { font-weight: 700; white-space: nowrap; }
+    .f-status small { font-size: .6em; color: #b89961; font-weight: 400; margin-right: .4em; letter-spacing: .05em; }
+    .f-status .max { color: #9a8b70; font-weight: 400; }
+    .f-status .tmp { color: #93c5fd; font-size: .75em; }
+    .f-bar { height: 1em; background: rgba(0,0,0,.55); border: 1px solid #3e2513; border-radius: 999px; overflow: hidden; }
+    .f-bar i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .6s ease, background-color .6s ease; }
+
+    /* Now */
+    .f-now {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex; flex-direction: column; justify-content: center;
+        gap: 1.8vh;
+        padding: 2.4vh 3.5vw 2.4vh 4.5vw;
+        border: 2px solid #d4af37;
+        box-shadow: 0 0 0 3px rgba(212,175,55,.25), 0 0 44px rgba(212,175,55,.45);
+        overflow: hidden;
+    }
+    .f-now::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: max(10px, 1.1vw);
+        background: linear-gradient(180deg, #f4d878, #d4af37 40%, #a3801f);
+        border-radius: 12px 0 0 12px;
+        box-shadow: 0 0 14px rgba(212,175,55,.7);
+    }
+    .f-now .f-label::before { content: '\25B6\00a0\00a0'; animation: pulse 1.6s ease-in-out infinite; }
+    .f-now .f-name {
+        font-family: 'Cinzel', Georgia, serif;
+        font-size: clamp(30px, min(10vh, 7vw), 150px);
+        line-height: 1.05;
+        color: #f4ecd8;
+        text-shadow: 0 3px 10px rgba(0,0,0,.7);
+    }
+    .f-now .f-meta { display: flex; align-items: center; gap: 2.4vw; font-size: clamp(16px, 3.6vh, 46px); }
+    .f-now .f-bar { width: min(34vw, 500px); height: .45em; }
+    .f-now .f-conds { font-size: clamp(13px, 2.5vh, 30px); }
+    .f-now.timer { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 0 44px rgba(59,130,246,.4); background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+    .f-now.timer::before { background: linear-gradient(180deg, #93c5fd, #3b82f6 40%, #1d4ed8); box-shadow: 0 0 14px rgba(59,130,246,.7); }
+    .f-now.timer .f-label, .f-now.timer .f-status { color: #93c5fd; }
+    .f-now.dead { border-color: #8b0000; box-shadow: 0 0 30px rgba(139,0,0,.45); background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%); }
+    .f-now.dead .f-name { text-decoration: line-through; text-decoration-thickness: 3px; opacity: .75; }
+    .f-now.idle { border-style: dashed; border-color: #5a4a30; box-shadow: none; align-items: center; text-align: center; }
+    .f-now.idle::before { display: none; }
+    .f-now.idle .f-label::before { content: none; }
+    .f-now.idle .f-name { color: #9a8b70; font-size: clamp(26px, min(7vh, 6vw), 96px); }
+
+    /* Up next */
+    .f-next {
+        flex: 0 0 auto;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1.4vh 2.4vw;
+        padding: 3vh 3.2vw;
+        border: 2px solid #3b6fd1;
+        background: linear-gradient(135deg, #1b2336 0%, #141a28 100%);
+    }
+    .f-next .f-label { color: #93c5fd; }
+    .f-next .f-label { font-size: clamp(14px, 2.7vh, 34px); }
+    .f-next .f-name { font-size: clamp(26px, min(7.8vh, 6.2vw), 112px); color: #e4d5b7; }
+    .f-next .f-right { display: flex; flex-direction: column; align-items: flex-end; gap: .35em; font-size: clamp(16px, 3.6vh, 46px); }
+    .f-next .f-bar { width: min(22vw, 320px); height: .4em; }
+    .f-next .f-conds { grid-column: 2 / 4; font-size: clamp(13px, 2.5vh, 30px); margin-top: -.6vh; }
+    .f-next.dead .f-name { text-decoration: line-through; opacity: .6; }
+
+    /* On deck */
+    .f-deck { flex: 0 0 auto; display: flex; flex-direction: column; gap: 1vh; }
+    .f-deck-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 2.4vw;
+        padding: 1.1vh 3vw;
+        border-color: #3e2513;
+        opacity: .85;
+        font-size: clamp(14px, min(3.3vh, 3vw), 44px);
+    }
+    .f-deck-row .f-label { color: #9a8b70; font-size: .6em; }
+    .f-deck-row .f-name { color: #cbbd9f; }
+    .f-deck-row .f-status { font-size: .75em; }
+    .f-deck-row.dead .f-name { text-decoration: line-through; opacity: .6; }
+
+    /* ---- The row / card whose turn it is: same look as in the tracker ----
+       body.tc-color + tc-gold/bronze/ember/emerald/arcane = whole card coloured, no gold frame.
+       Without tc-color = the classic gold frame. tc-tall = that row is a bit taller. */
+    body.tc-gold    { --tc-bg: linear-gradient(135deg, #6b5216 0%, #3d2c0a 100%); --tc-edge: #8a6d22; }
+    body.tc-bronze  { --tc-bg: linear-gradient(135deg, #5a3a1e 0%, #2c1b0d 100%); --tc-edge: #7a5230; }
+    body.tc-ember   { --tc-bg: linear-gradient(135deg, #5c1e14 0%, #2e0d09 100%); --tc-edge: #7a2a1d; }
+    body.tc-emerald { --tc-bg: linear-gradient(135deg, #17492f 0%, #0b2519 100%); --tc-edge: #23674a; }
+    body.tc-arcane  { --tc-bg: linear-gradient(135deg, #43255f 0%, #231236 100%); --tc-edge: #5d3a80; }
+    body.tc-color .row.active {
+        border: 1px solid var(--tc-edge);
+        background: var(--tc-bg);
+        box-shadow: 0 10px 26px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
+        transform: none;
+    }
+    body.tc-color .row.active::before { display: none; }
+    body.tc-color .row.active::after { color: #f4d878; }
+    /* the initiative circle on a coloured card: dark disc with cream ring + number, readable on every colour */
+    body.tc-color .row.active .init { background: rgba(0,0,0,.55); border-color: #f4ecd8; color: #f4ecd8; box-shadow: 0 0 0 2px rgba(0,0,0,.25); }
+    body.tc-color .row.active .hp-text { text-shadow: 0 1px 3px rgba(0,0,0,.85); }
+    body.tc-color .row.active .hp-text small { color: #e9d9b0; }
+    body.tc-color .row.timer.active { background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%); border-color: #3b82f6; }
+    body.tc-color .row.timer.active .init { border-color: #93c5fd; color: #dbeafe; }
+    body.tc-color .row.dead.active { background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%); border-color: #8b0000; }
+    body.tc-tall .row.active { flex-basis: calc(var(--u) * 1.3); height: calc(var(--u) * 1.3); }
+
+    body.tc-color .f-now { border: 1px solid var(--tc-edge); background: var(--tc-bg); box-shadow: 0 12px 32px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); }
+    body.tc-color .f-now::before { display: none; }
+    body.tc-color .f-now .f-label { color: #f4d878; }
+    body.tc-color .f-now .f-status { text-shadow: 0 1px 3px rgba(0,0,0,.85); }
+    body.tc-color .f-now.timer { border: 2px solid #3b82f6; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+    body.tc-color .f-now.timer .f-label { color: #93c5fd; }
+    body.tc-color .f-now.dead { border-color: #8b0000; background: linear-gradient(135deg, #3a1c1c 0%, #1a0808 100%); }
+    body.tc-color .f-now.idle { border: 2px dashed #5a4a30; background: linear-gradient(135deg, #2a241d 0%, #1a1715 100%); box-shadow: none; }
+
+    /* ---- "Turn on top": golden line where the next round starts ---- */
+    .turn-wrap { flex: 0 0 auto; display: flex; align-items: center; gap: calc(var(--u) * 0.15); padding: calc(var(--u) * 0.04) 0; }
+    .turn-wrap::before, .turn-wrap::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, rgba(212,175,55,0), #d4af37 35%, #f4d878 50%, #d4af37 65%, rgba(212,175,55,0)); }
+    .turn-wrap span { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: calc(var(--u) * 0.2); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
+        color: #1a1305; background: linear-gradient(180deg, #f4d878, #d4af37 55%, #a3801f); padding: .15em 1em; border-radius: 999px; box-shadow: 0 0 14px rgba(212,175,55,.45); }
+
+    /* ---- Empty state ---- */
+    #empty {
+        margin: auto;
+        text-align: center;
+        color: #9a8b70;
+        font-size: clamp(16px, 2.6vh, 32px);
+        line-height: 1.6;
+        max-width: 40ch;
+    }
+    #empty b { display: block; font-family: 'Cinzel', Georgia, serif; color: #d4af37; font-size: 1.4em; margin-bottom: .3em; letter-spacing: .1em; }
+
+    /* ---- Footer hint ---- */
+    footer {
+        flex: 0 0 auto;
+        text-align: right;
+        padding: .6vh 1.4vw .8vh;
+        font-size: clamp(10px, 1.5vh, 14px);
+        color: #b89961;
+        opacity: .4;
+        letter-spacing: .04em;
+        user-select: none;
+    }
+    footer:hover { opacity: .9; }
+    footer kbd { font-family: inherit; border: 1px solid #5a4a30; border-radius: 3px; padding: 0 .35em; margin-right: .25em; }
+    footer span { margin-left: 1.2em; }
+    footer span.on { color: #d4af37; }
+    footer span.on kbd { border-color: #d4af37; }
+    footer b { font-weight: 700; color: #d4af37; }
+    /* Remote Turn Display: connection state, small and out of the way */
+    #conn { position: fixed; top: .7vh; right: 1vw; z-index: 30; font: 700 clamp(10px, 1.4vh, 13px) Lato, sans-serif; letter-spacing: .04em;
+            color: #b89961; opacity: .7; user-select: none; pointer-events: none; transition: opacity .6s; }
+    #conn:empty { display: none; }
+    #conn.live { color: #4ade80; opacity: .3; }
+    #conn.bad { color: #f87171; opacity: .95; }
+    #empty small { display: block; margin-top: .6em; opacity: .7; font-size: .85em; }
+</style>
+</head>
+<body>
+
+<header><div id="round">Round 1</div></header>
+<div id="conn"></div>
+<div id="list"></div>
+<div id="focus"></div>
+<footer id="hint">
+    <span id="hint-m"><kbd>M</kbd>mode: <b id="hint-m-t">list</b></span>
+    <span id="hint-t"><kbd>T</kbd>effect timers</span>
+    <span><kbd>F</kbd>fullscreen</span>
+</footer>
+
+<script>
+(function () {
+    'use strict';
+
+    var STATE_KEY = 'encounterMasterSave';   // written by the tracker's saveState()
+    var PREFS_KEY = 'encounterViewerPrefs';  // viewer-only settings
+    var MODE_KEY = 'encounterViewerMode';    // 'list' | 'focus', set by the tracker's List / Focus switch (or M here)
+
+    // Remote mode: opened from the DM's "Turn Display link" (#h=<tracker>&d=<display token>), e.g. on GitHub Pages.
+    // The tracker sends the state over a peer-to-peer connection; nothing is read from this browser's storage then.
+    var hashArgs = new URLSearchParams(location.hash.replace(/^#/, ''));
+    var REMOTE_HOST = hashArgs.get('h'), REMOTE_TOKEN = hashArgs.get('d');
+    var REMOTE = !!(REMOTE_HOST && REMOTE_TOKEN);
+    var remoteRaw = null;          // last state from the DM, as a string (so the usual compare / parse works)
+    var remoteMode = 'list';       // list / focus here; follows the DM's switch, M changes it on this screen only
+    var remoteDmMode = null;
+    var conn = { kind: '', text: '' };
+
+    var prefs = { showTimers: true };
+    try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) {}
+
+    var listEl = document.getElementById('list');
+    var focusEl = document.getElementById('focus');
+    var roundEl = document.getElementById('round');
+
+    function readMode() {
+        if (REMOTE) return remoteMode;
+        try { return localStorage.getItem(MODE_KEY) === 'focus' ? 'focus' : 'list'; } catch (e) { return 'list'; }
+    }
+    var mode = readMode();
+    var lastNowId;               // who the focus "Now" card showed last time (to animate a change of turn)
+
+    var lastRaw = null;          // last raw string we rendered
+    var lastData = null;         // last parsed state (for re-render on pref change / resize)
+    var prevHp = new Map();      // id -> hp at last render (for damage/heal flash)
+    var prevPct = new Map();     // id -> bar % at last render (for bar animation)
+    var pending = null;
+
+    function esc(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function readRaw() {
+        if (REMOTE) return remoteRaw;
+        try { return localStorage.getItem(STATE_KEY); } catch (e) { return null; }
+    }
+
+    // Turn the tracker's saved JSON into what the viewer needs.
+    function parse(raw) {
+        if (!raw) return null;
+        var s;
+        try { s = JSON.parse(raw); } catch (e) { return null; }
+        var list, round, activeId;
+        if (s.combatants) {                     // very old single-encounter save format
+            list = s.combatants; round = s.currentRound; activeId = s.activeCombatantId;
+        } else {
+            var encs = s.encounters || [];
+            var enc = encs.find(function (e) { return e.id === s.activeEncounterId; }) || encs[0];
+            if (!enc) return null;
+            list = enc.combatants; round = enc.currentRound; activeId = enc.activeCombatantId;
+        }
+        var party = new Set((s.coreParty || []).map(function (p) { return String(p.name || '').trim().toLowerCase(); }));
+        return { list: list || [], round: round || 1, activeId: activeId || null, party: party, display: s.display && s.display.fx ? s.display : null,
+            // Turn Display switches in the tracker's Settings: caster names on tags, a second tag line for busy rows
+            showSrc: s.showFxSourceOnDisplay === true, twoLines: s.displayTwoTagLines === true, skipDead: s.skipDeadMonsters !== false, showDs: s.showDeathSavesToPlayers !== false, showPlayerHp: s.showPlayerHpToTable === true,
+            // same turn-card look as the tracker (gold + taller unless changed there), and how this list keeps the turn in view
+            turnCard: ['gold', 'bronze', 'ember', 'emerald', 'arcane', 'classic'].indexOf(s.turnCardStyle) > -1 ? s.turnCardStyle : 'gold',
+            tall: s.tallTurnCard !== false,
+            listView: (s.displayTurnView === 'fit' || s.displayTurnView === 'rotate') ? s.displayTurnView : 'follow' };
+    }
+
+    // Conditions from round timers attached to this combatant (e.g. "Bless (3)"); expired ones are hidden.
+    function linkedConds(list, id) {
+        return list.filter(function (t) {
+            return t.type === 'timer' && t.duration > 0 && Array.isArray(t.linkedIds) && t.linkedIds.indexOf(id) > -1;
+        }).map(function (t) {
+            var label = (t.conditionLabel && String(t.conditionLabel).trim()) ? String(t.conditionLabel).trim() : String(t.name || '');
+            return { label: label, n: t.duration };
+        });
+    }
+
+    // Nobody's HP is shown as numbers here, only a colour band: green = full HP, yellow = hurt (over half),
+    // red = half or less. Bar length is coarse on purpose so the exact HP can't be read off it.
+    function bucket(hp, max) {
+        if (hp <= 0) return { k: 'down',     label: 'Down',     pct: 0,   color: '#6b7280' };
+        var r = max > 0 ? hp / max : 1;
+        if (r >= 1)   return { k: 'healthy',  label: 'Healthy',  pct: 100, color: '#22c55e' };
+        if (r > 0.5)  return { k: 'hurt',     label: 'Hurt',     pct: 66,  color: '#eab308' };
+        return              { k: 'bloodied', label: 'Bloodied', pct: 33,  color: '#ef4444' };
+    }
+
+    // What the players may see. Hidden combatants are "not in play yet". A timer shows while it has rounds
+    // left, and also on the turn it ticks down to 0 (so its final turn isn't a blank).
+    function isShown(c, data) {
+        if (c.type === 'timer') return prefs.showTimers && (c.duration > 0 || c.id === data.activeId);
+        return c.hidden !== true;
+    }
+
+    function render(data) {
+        lastData = data;
+        document.body.classList.toggle('mode-focus', mode === 'focus');
+        syncHint();
+        var box = mode === 'focus' ? focusEl : listEl;
+
+        if (!data) {
+            setRound('-');
+            box.innerHTML = !REMOTE
+                ? '<div id="empty"><b>Waiting for the tracker</b>Open the tracker in this same browser, from the same folder or site as this page, and make a change.</div>'
+                : conn.kind === 'denied'
+                ? '<div id="empty"><b>This link no longer works</b>Ask your DM for the newest Turn Display link (Settings › Players › Copy Turn Display link).</div>'
+                : '<div id="empty"><b>Connecting to your DM</b>' + esc(conn.text || 'Connecting…') +
+                  '<small>Your DM needs the tracker open with sharing on. This page updates by itself.</small></div>';
+            return;
+        }
+
+        setRound(data.round);
+        applyTurnLook(data);
+
+        if (!data.list.some(function (c) { return isShown(c, data); })) {
+            box.innerHTML = '<div id="empty"><b>No combatants</b>The encounter is empty.</div>';
+        } else if (mode === 'focus') {
+            renderFocus(data);
+        } else {
+            renderList(data);
+        }
+
+        // Remember HP for the next damage / heal flash; forget removed combatants.
+        data.list.forEach(function (c) { if (c.type !== 'timer') prevHp.set(c.id, c.hp); });
+        Array.from(prevHp.keys()).forEach(function (id) { if (!data.list.some(function (c) { return c.id === id; })) prevHp.delete(id); });
+    }
+
+    var shownRound = null;
+    function setRound(n) {
+        roundEl.innerHTML = '<span class="seal">' + esc(n) + '</span><span>Round</span>';
+        if (shownRound !== null && shownRound !== n && n !== '-') { var seal = roundEl.firstChild; void seal.offsetWidth; seal.classList.add('pop'); }
+        shownRound = n;
+    }
+
+    function applyTurnLook(data) {
+        var b = document.body;
+        ['tc-color', 'tc-tall', 'tc-gold', 'tc-bronze', 'tc-ember', 'tc-emerald', 'tc-arcane'].forEach(function (c) { b.classList.remove(c); });
+        if (data.turnCard !== 'classic') { b.classList.add('tc-color'); b.classList.add('tc-' + data.turnCard); }
+        if (data.tall) b.classList.add('tc-tall');
+    }
+
+    function flashCls(c) {
+        var prev = prevHp.get(c.id);
+        if (prev === undefined || c.type === 'timer') return '';
+        return c.hp < prev ? ' hit' : c.hp > prev ? ' heal' : '';
+    }
+
+    // Tags: the tracker (v1.6.1 and later) writes what may be shown, with icons; an older tracker: plain condition names.
+    function tagHtml(t, icons) {
+        var p = icons && icons[t.ic];
+        return '<span class="cond fx fk-' + esc(t.k) + (t.r === 0 ? ' ended' : '') + '">' +
+            (p ? '<svg viewBox="0 0 512 512" aria-hidden="true"><path d="' + esc(p) + '"/></svg>' : '') +
+            '<span>' + esc(t.n) + '</span>' + (t.by && lastData && lastData.showSrc ? '<em>' + esc(t.by) + '</em>' : '') +
+            (/^c:Exhaustion$/.test(t.key) ? '<b class="lv">' + esc(String(t.n).replace(/\D+/g, '')) + '</b>' : '') +
+            (t.r != null ? '<b>' + (t.r === 0 ? 'ends' : Number(t.r)) + '</b>' : '') + '</span>';
+    }
+    // A crowded tag line gives way step by step until it fits: caster names go, tags get smaller, conditions
+    // become icon only (everyone knows them), [a second line if that is switched on], and last "+N" for the rest.
+    function fitTags(el) {
+        var over = function () { return el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1; };
+        if (!over()) return;
+        el.classList.add('nosrc'); if (!over()) return;
+        el.classList.add('fit1'); if (!over()) return;
+        var row = el.closest('.row');
+        if (lastData && lastData.twoLines && row && row.classList.contains('tl-under')) { row.classList.add('tall'); if (!over()) return; }
+        el.classList.add('fit2'); if (!over()) return;
+        var tags = Array.prototype.slice.call(el.querySelectorAll('.cond')), n = 0;
+        var more = document.createElement('span');
+        more.className = 'cond more';
+        el.appendChild(more);
+        while (tags.length > 1) {
+            el.removeChild(tags.pop()); n++;
+            more.textContent = '+' + n;
+            if (!over()) return;
+        }
+    }
+    function condsHtml(data, c) {
+        if (data.display) return (data.display.fx[c.id] || []).map(function (t) { return tagHtml(t, data.display.icons); }).join('');
+        return (c.conditions || []).map(function (x) { return '<span class="cond">' + esc(x) + '</span>'; }).join('') +
+            linkedConds(data.list, c.id).map(function (x) { return '<span class="cond lk">' + esc(x.label) + ' (' + Number(x.n) + ')</span>'; }).join('');
+    }
+
+    // Colour bar that grows / shrinks from where it was last time (see the data-w pass after innerHTML).
+    function barHtml(c, bk) {
+        var start = prevPct.has(c.id) ? prevPct.get(c.id) : bk.pct;
+        prevPct.set(c.id, bk.pct);
+        return '<div class="f-bar"><i data-w="' + bk.pct + '" style="width:' + start + '%;background:' + bk.color + '"></i></div>';
+    }
+
+    // Same rule as the tracker's isPlayerCombatant(): the DM's "Player" switch wins, otherwise guessed.
+    function isPlayer(c, data) {
+        if (typeof c.isPlayer === 'boolean') return c.isPlayer;
+        if (c.partyToken) return true;
+        if (data.party.has(String(c.name || '').trim().toLowerCase())) return true;
+        return !!(c.stats && /player/i.test(c.stats.sizeType || ''));
+    }
+
+    // Player characters at 0 HP are Dying / Stable / Dead (the tracker keeps c.ds); everyone else is just Down.
+    function deathOf(c, data) {
+        if (c.type === 'timer' || c.hp > 0 || !isPlayer(c, data)) return null;
+        return (c.ds && c.ds.state) || 'dying';
+    }
+    var DS_LOOK = { dying: { label: 'Dying', color: '#ef4444' }, stable: { label: 'Stable', color: '#22c55e' }, dead: { label: 'Dead', color: '#6b7280' } };
+    function statusOf(c, data) {
+        var d = deathOf(c, data);
+        if (d && !data.showDs) return { k: 'down', label: 'Down', pct: 0, color: '#6b7280' };   // saves hidden: no outcome shown
+        if (d) return { k: d, label: DS_LOOK[d].label, pct: 0, color: DS_LOOK[d].color };
+        var b = bucket(c.hp, c.maxHp);
+        // Exact numbers only where the DM allows it: the tracker's setting (player characters) or the row's own Show HP switch.
+        var show = typeof c.showHp === 'boolean' ? c.showHp : (data.showPlayerHp && isPlayer(c, data));
+        if (show && c.hp > 0) {
+            b.num = { hp: Number(c.hp) || 0, max: Number(c.maxHp) || 0, temp: Number(c.temp) || 0 };
+            b.pct = b.num.max > 0 ? Math.max(0, Math.min(100, Math.round(b.num.hp / b.num.max * 100))) : 100;
+        }
+        return b;
+    }
+    // "Hurt 30 / 45 +5" when numbers are allowed, otherwise just the word.
+    function statusText(bk) {
+        if (!bk.num) return bk.label;
+        return '<small>' + bk.label + '</small>' + bk.num.hp + ' <span class="max">/ ' + bk.num.max + '</span>' +
+            (bk.num.temp > 0 ? ' <span class="tmp">+' + bk.num.temp + '</span>' : '');
+    }
+    function looksDead(c, data) {
+        var d = deathOf(c, data);
+        return d ? (data.showDs && d === 'dead') : c.hp <= 0;
+    }
+
+    // Would Next Turn in the tracker land on this one? (Timers are left out of "up next" on purpose.)
+    function takesTurn(c, data) {
+        if (c.type === 'timer' || c.hidden === true) return false;
+        if (c.hp <= 0 && isPlayer(c, data)) return deathOf(c, data) !== 'dead';   // dying / stable keep their turn
+        if (data.skipDead && c.hp <= 0) return false;
+        return true;
+    }
+
+    // The next real combatants after whoever has the turn (timers and hidden ones skipped, like the player
+    // page's "You're up next"). Each carries the round it will happen in, so a new round can be flagged.
+    function upcoming(data, max) {
+        var list = data.list, n = list.length;
+        var idx = data.activeId === null ? -1 : list.findIndex(function (c) { return c.id === data.activeId; });
+        var out = [], round = data.round;
+        for (var step = 1; step <= n && out.length < max; step++) {
+            var pos = idx + step;
+            if (pos >= n) { pos -= n; if (idx !== -1 && pos === 0) round = data.round + 1; }
+            if (pos === idx) break;
+            var c = list[pos];
+            if (takesTurn(c, data)) out.push({ c: c, round: round });
+        }
+        return out;
+    }
+
+    function renderFocus(data) {
+        var html = '';
+        var act = data.list.find(function (c) { return c.id === data.activeId; });
+        if (act && !isShown(act, data)) act = null;   // hidden by the DM (or a timer while timers are off)
+
+        // ---- Now ----
+        var nowId = act ? act.id : null;
+        var enter = lastNowId !== undefined && nowId !== lastNowId ? ' enter' : '';
+        lastNowId = nowId;
+
+        if (!act) {
+            var idle = data.activeId === null ? 'Combat has not started' : '…';
+            html += '<div class="f-card f-now idle' + enter + '"><div class="f-label">Now</div><div class="f-name">' + idle + '</div></div>';
+        } else if (act.type === 'timer') {
+            var r = act.duration;
+            html += '<div class="f-card f-now timer' + enter + '">' +
+                '<div class="f-label">Effect</div>' +
+                '<div class="f-name">' + esc(act.name) + '</div>' +
+                '<div class="f-meta"><span class="f-status">' + (r > 0 ? r + (r === 1 ? ' round left' : ' rounds left') : 'Ends now') + '</span></div>' +
+                '</div>';
+        } else {
+            var bk = statusOf(act, data);
+            var cs = condsHtml(data, act);
+            html += '<div class="f-card f-now' + (looksDead(act, data) ? ' dead' : '') + (flashCls(act) || enter) + '">' +
+                '<div class="f-label">Now</div>' +
+                '<div class="f-name">' + esc(act.name) + '</div>' +
+                '<div class="f-meta"><span class="f-status k-' + bk.k + '">' + statusText(bk) + '</span>' + barHtml(act, bk) + '</div>' +
+                (cs ? '<div class="f-conds">' + cs + '</div>' : '') +
+                '</div>';
+        }
+
+        // ---- Up next + on deck ----
+        var nxt = upcoming(data, 3);
+        if (nxt.length) {
+            var u = nxt[0], uc = u.c, ub = statusOf(uc, data), ucs = condsHtml(data, uc);
+            var rnd = u.round !== data.round ? '<span class="f-rnd">Round ' + u.round + '</span>' : '';
+            html += '<div class="f-card f-next' + (looksDead(uc, data) ? ' dead' : '') + (flashCls(uc) || enter) + '">' +
+                '<div class="f-label">Up next' + rnd + '</div>' +
+                '<div class="f-name">' + esc(uc.name) + '</div>' +
+                '<div class="f-right"><span class="f-status k-' + ub.k + '">' + statusText(ub) + '</span>' + barHtml(uc, ub) + '</div>' +
+                (ucs ? '<div class="f-conds">' + ucs + '</div>' : '') +
+                '</div>';
+        }
+        if (nxt.length > 1) {
+            html += '<div class="f-deck">' + nxt.slice(1).map(function (d) {
+                var dc = d.c, db = statusOf(dc, data);
+                var rnd = d.round !== data.round ? '<span class="f-rnd">Round ' + d.round + '</span>' : '';
+                return '<div class="f-card f-deck-row' + (looksDead(dc, data) ? ' dead' : '') + '">' +
+                    '<div class="f-label">Then' + rnd + '</div>' +
+                    '<div class="f-name">' + esc(dc.name) + '</div>' +
+                    '<span class="f-status k-' + db.k + '">' + statusText(db) + '</span>' +
+                    '</div>';
+            }).join('') + '</div>';
+        }
+
+        focusEl.innerHTML = html;
+        void focusEl.offsetWidth;
+        focusEl.querySelectorAll('.f-bar i[data-w]').forEach(function (i) { i.style.width = i.getAttribute('data-w') + '%'; });
+    }
+
+    var lastListActive;   // whose turn the list showed last time (to scroll smoothly only when the turn moves)
+
+    function renderList(data) {
+        // Display order. 'rotate' (Turn on top): start at whoever has the turn; a golden line marks where the
+        // next round begins. Otherwise: plain initiative order.
+        var order = data.list, wrapId = null;
+        if (data.listView === 'rotate' && data.activeId !== null) {
+            var a = data.list.findIndex(function (c) { return c.id === data.activeId; });
+            if (a > 0) {
+                order = data.list.slice(a).concat(data.list.slice(0, a));
+                var after = data.list.slice(0, a).filter(function (c) { return isShown(c, data); });
+                if (after.length) wrapId = after[0].id;
+            }
+        }
+        var items = order.filter(function (c) { return isShown(c, data); });
+
+        var html = '';
+        var seenIds = new Set();
+
+        items.forEach(function (c) {
+            seenIds.add(c.id);
+            if (c.id === wrapId) html += '<div class="turn-wrap"><span>&#8635; Round ' + (data.round + 1) + '</span></div>';
+            var active = c.id === data.activeId;
+            var cls = 'row';
+            if (active) cls += ' active';
+
+            // ---- Effect timer ----
+            if (c.type === 'timer') {
+                var n = c.duration;
+                html += '<div class="' + cls + ' timer" data-id="' + c.id + '">' +
+                    '<div class="init">' + esc(c.initiative) + '</div>' +
+                    '<div class="who"><div class="name">' + esc(c.name) + '</div></div>' +
+                    '<div class="hp"><div class="hp-text" style="color:#93c5fd">' + (n > 0 ? n + (n === 1 ? ' round' : ' rounds') : 'Ends') + '</div></div>' +
+                    '</div>';
+                return;
+            }
+
+            // ---- Combatant ----
+            var hp = c.hp, max = c.maxHp;
+            var dead = looksDead(c, data);
+            var conds = condsHtml(data, c);
+
+            var prev = prevHp.get(c.id);
+            if (prev !== undefined && hp < prev) cls += ' hit';
+            else if (prev !== undefined && hp > prev) cls += ' heal';
+            if (dead) cls += ' dead';
+
+            // Colour only, for players and monsters alike: exact HP stays in the GM tracker.
+            var bk = statusOf(c, data);
+            var pct = bk.pct, color = bk.color;
+            var hpHtml = '<div class="hp-text k-' + bk.k + '">' + statusText(bk) + '</div>';
+
+            var start = prevPct.has(c.id) ? prevPct.get(c.id) : pct;
+            prevPct.set(c.id, pct);
+
+            cls += ' tl-under';
+            html += '<div class="' + cls + '" data-id="' + c.id + '">' +
+                '<div class="init">' + esc(c.initiative) + '</div>' +
+                '<div class="who"><div class="name">' + esc(c.name) + '</div></div>' +
+                '<div class="hp">' + hpHtml + '<div class="bar"><i data-w="' + pct + '" style="width:' + start + '%;background:' + color + '"></i></div></div>' +
+                (conds ? '<div class="conds">' + conds + '</div>' : '') +
+                '</div>';
+        });
+
+        Array.from(prevPct.keys()).forEach(function (id) { if (!seenIds.has(id)) prevPct.delete(id); });
+
+        var keepScroll = listEl.scrollTop;
+        listEl.innerHTML = html;
+
+        if (data.listView === 'fit') fit(items.length + (data.tall ? 0.3 : 0));
+        else fixedSize();
+        listEl.querySelectorAll('.row > .conds').forEach(fitTags);   // crowded tag lines make room step by step
+        // Big numbers (e.g. 1250 / 1250 +100) get a smaller font instead of pushing the bar along.
+        listEl.querySelectorAll('.row.tl-under .hp-text').forEach(function (el) {
+            if (el.scrollWidth > el.clientWidth + 1) el.classList.add('tight');
+            if (el.scrollWidth > el.clientWidth + 1) el.classList.add('tighter');
+        });
+        // 'Scroll to turn' needs room under the last row so even that one can scroll up to the top.
+        listEl.style.paddingBottom = data.listView === 'follow' ? Math.max(0, listEl.clientHeight - currentU() * 1.6) + 'px' : '';
+
+        // Animate bars from their previous width to the new one.
+        void listEl.offsetWidth;
+        listEl.querySelectorAll('.bar i[data-w]').forEach(function (i) { i.style.width = i.getAttribute('data-w') + '%'; });
+
+        var act = listEl.querySelector('.row.active');
+        var moved = lastListActive !== data.activeId;
+        lastListActive = data.activeId;
+        if (data.listView === 'fit') {
+            // Fit everyone: only scrolls if the list still overflows at the smallest size.
+            if (act && listEl.scrollHeight > listEl.clientHeight + 2) act.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } else if (data.listView === 'rotate') {
+            listEl.scrollTop = 0;   // the current turn is always first
+        } else {
+            // Scroll to turn: the current row slides up to the top of the screen.
+            listEl.scrollTop = keepScroll;
+            if (act) {
+                var top = act.offsetTop - listEl.offsetTop - parseFloat(getComputedStyle(listEl).paddingTop) - currentU() * 0.15;
+                try { listEl.scrollTo({ top: Math.max(0, top), behavior: moved ? 'smooth' : 'auto' }); } catch (e) { listEl.scrollTop = Math.max(0, top); }
+            }
+        }
+    }
+
+    function currentU() { return parseFloat(listEl.style.getPropertyValue('--u')) || 90; }
+
+    // Scroll modes keep rows at a comfortable fixed size instead of shrinking them to fit everyone.
+    function fixedSize() {
+        var u = Math.max(60, Math.min(140, window.innerHeight * 0.13));
+        listEl.style.setProperty('--u', u + 'px');
+    }
+
+    // Scale row size so everyone fits on screen when possible.
+    function fit(count) {
+        var cs = getComputedStyle(listEl);
+        var padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        var avail = listEl.clientHeight - padV;
+        var cap = Math.min(140, window.innerHeight * 0.14);
+        var u = avail / (count * 1.1);
+        u = Math.max(52, Math.min(cap, u));
+        listEl.style.setProperty('--u', u + 'px');
+    }
+
+    function refresh() {
+        pending = null;
+        var raw = readRaw();
+        var m = readMode();
+        if (raw === lastRaw && m === mode) return;
+        lastRaw = raw;
+        mode = m;
+        render(parse(raw));
+    }
+
+    // Small debounce: typing in an HP box fires saveState() on every keystroke.
+    function schedule() {
+        if (pending) clearTimeout(pending);
+        pending = setTimeout(refresh, 120);
+    }
+
+    // ---- Live updates ----
+    // 'storage' fires here whenever ANOTHER window of the same browser/origin writes localStorage.
+    window.addEventListener('storage', function (e) {
+        if (e.key === STATE_KEY || e.key === MODE_KEY || e.key === null) schedule();
+    });
+    // Safety net in case an event is ever missed (cheap: string compare only).
+    setInterval(function () { if (readRaw() !== lastRaw || readMode() !== mode) schedule(); }, 1000);
+
+    window.addEventListener('resize', function () {
+        if (lastData) render(lastData);
+    });
+
+    // ---- Viewer-only controls ----
+    function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} }
+
+    function syncHint() {
+        document.getElementById('hint-t').className = prefs.showTimers ? 'on' : '';
+        document.getElementById('hint-m-t').textContent = mode;
+    }
+
+    function toggleFullscreen() {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        var k = e.key.toLowerCase();
+        if (k === 't') { prefs.showTimers = !prefs.showTimers; }
+        else if (k === 'f') { toggleFullscreen(); return; }
+        else if (k === 'm') {
+            // Same switch as the tracker's List / Focus buttons; the tracker follows along.
+            mode = mode === 'focus' ? 'list' : 'focus';
+            if (REMOTE) remoteMode = mode;   // this screen only
+            else { try { localStorage.setItem(MODE_KEY, mode); } catch (e) {} }
+            render(lastData);
+            return;
+        }
+        else return;
+        savePrefs(); syncHint();
+        if (lastData) render(lastData);
+    });
+    document.addEventListener('dblclick', toggleFullscreen);
+
+    // ---- Remote mode: the connection to the DM's tracker ----
+    function setConn(kind, text) {
+        conn = { kind: kind, text: text };
+        var el = document.getElementById('conn');
+        el.className = kind === 'denied' ? 'bad' : kind;
+        el.textContent = kind === 'live' ? '● Live' : kind === 'denied' ? 'Link not valid' : (kind === 'bad' ? '● ' : '○ ') + text;
+        if (!lastData) render(null);
+    }
+
+    function startRemote() {
+        var peerOpts = window.EM_PEER_OPTIONS || {};   // optional custom broker, same as the tracker
+        var peer = null, link = null, joined = false, denied = false;
+        var lastMsgAt = 0, retryT = null, openT = null, attempt = 0;
+
+        function cleanup() {
+            clearTimeout(openT);
+            joined = false;
+            if (link) { try { link.close(); } catch (e) {} link = null; }
+            if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+        }
+        function restart(text, waitMs) {
+            if (denied) return;
+            cleanup();
+            setConn('', text || 'Reconnecting…');
+            clearTimeout(retryT);
+            retryT = setTimeout(start, waitMs || Math.min(10000, 1500 * (++attempt)));
+        }
+        function onMsg(m) {
+            if (!m || typeof m !== 'object') return;
+            lastMsgAt = Date.now();
+            if (m.t === 'ping') return;
+            if (m.t === 'denied') { denied = true; cleanup(); remoteRaw = null; lastRaw = null; lastData = null; setConn('denied', ''); return; }
+            if (m.t === 'dstate' && m.save && typeof m.save === 'object') {
+                if (!joined) { joined = true; attempt = 0; clearTimeout(openT); }
+                if (m.mode !== remoteDmMode && (m.mode === 'list' || m.mode === 'focus')) { remoteDmMode = m.mode; remoteMode = m.mode; }
+                remoteRaw = JSON.stringify(m.save);
+                setConn('live', 'Live');
+                schedule();
+            }
+        }
+        function start() {
+            if (denied) return;
+            clearTimeout(retryT);
+            setConn('', 'Connecting…');
+            var p;
+            try { p = new Peer(Object.assign({ debug: 1 }, peerOpts)); }
+            catch (e) { restart('Could not connect. Retrying…', 5000); return; }
+            peer = p;
+            p.on('open', function () {
+                if (peer !== p) return;
+                var c = p.connect(REMOTE_HOST, { reliable: true, serialization: 'json' });
+                link = c;
+                openT = setTimeout(function () { if (link === c && !joined) restart('Waiting for your DM…'); }, 15000);
+                c.on('open', function () { if (link === c) c.send({ t: 'join', display: REMOTE_TOKEN }); });
+                c.on('data', function (m) { if (link === c) onMsg(m); });
+                c.on('close', function () { if (link === c && !denied) restart('Connection lost. Reconnecting…'); });
+                c.on('error', function () { if (link === c && !denied) restart('Connection lost. Reconnecting…'); });
+            });
+            p.on('disconnected', function () { if (peer === p && !p.destroyed) { try { p.reconnect(); } catch (e) {} } });
+            p.on('error', function (err) {
+                if (peer !== p) return;
+                if (err && err.type === 'peer-unavailable') restart('Waiting for your DM to start sharing…', 5000);
+                else restart('Reconnecting…');
+            });
+        }
+        // The DM pings every 15 s: a silent connection is a dead one.
+        setInterval(function () { if (joined && !denied && Date.now() - lastMsgAt > 40000) restart('Connection lost. Reconnecting…', 500); }, 5000);
+
+        // The connection library is only needed here, so a local Turn Display keeps working offline.
+        var tries = 0;
+        (function load() {
+            if (typeof Peer !== 'undefined') { start(); return; }
+            setConn('', 'Loading…');
+            var sc = document.createElement('script');
+            sc.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
+            sc.onload = function () { start(); };
+            sc.onerror = function () { sc.remove(); setConn('bad', 'Could not load the connection library. Retrying…'); setTimeout(load, Math.min(15000, 3000 * ++tries)); };
+            document.head.appendChild(sc);
+        })();
+
+        // Keep a tablet / phone screen awake while it shows the turns (where the browser allows it).
+        function wake() { try { if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} }
+        document.addEventListener('visibilitychange', wake);
+        wake();
+        // A new link pasted into this tab: start over with it.
+        window.addEventListener('hashchange', function () { location.reload(); });
+    }
+
+    lastRaw = readRaw();
+    render(parse(lastRaw));
+    if (REMOTE) startRemote();
+})();
+</script>
+</body>
+</html>
